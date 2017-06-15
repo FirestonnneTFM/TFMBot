@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Wpedantic -O2
+# maximize warning messages !
+CFLAGS = -std=gnu99 -Wall -Wextra -Wpedantic -Wshadow -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Werror
 TARGET = ./bin/remote
 SOURCES = $(wildcard ./src/*.c)
 OBJECTS = $(SOURCES:.c=.o)

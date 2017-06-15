@@ -5,7 +5,7 @@
 #include "byte_stream.h"
 
 typedef struct {
-	int sock;
+	sock_t sock;
 	byte key_offset;
 } Bot;
 

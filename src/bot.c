@@ -20,7 +20,7 @@ void Bot_send(Bot *self, ByteStream *b, byte *k)
 	*k = (*k + 1) % 100;
 }
 
-inline void Bot_handle_packet(Bot *self, uint16_t ccc, ByteStream *b)
+static inline void Bot_handle_packet(Bot *self, uint16_t ccc, ByteStream *b)
 {
 	switch (ccc) {
 	case 0x1A03: {
@@ -33,7 +33,8 @@ inline void Bot_handle_packet(Bot *self, uint16_t ccc, ByteStream *b)
 			   country, community, players_online);
 		free(country);
 		free(community);
-		ByteStream *b = ByteStream_new();
+		
+		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x0802);
 		// 0x0E is for E2 community
 		ByteStream_write_u16(b, 0x0E00);

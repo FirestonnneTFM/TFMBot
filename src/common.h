@@ -8,8 +8,9 @@
 #include <unistd.h>
 
 typedef uint8_t byte;
+typedef int sock_t;
 
-int open_sock(char *, int);
+sock_t open_sock(char *, int);
 void fatal(char *);
 
 #endif

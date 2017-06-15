@@ -3,6 +3,7 @@
 #include "btea.h"
 #include <string.h>
 #include <stdint.h>
+#include <time.h>
 
 ByteStream *ByteStream_new()
 {
@@ -87,7 +88,7 @@ void ByteStream_write_str(ByteStream *self, char *buf)
 	}
 }
 
-void ByteStream_write_sock(ByteStream *self, int sock, byte k)
+void ByteStream_write_sock(ByteStream *self, sock_t sock, byte k)
 {
 	byte header[4];
 	byte header_size;
@@ -106,10 +107,16 @@ void ByteStream_write_sock(ByteStream *self, int sock, byte k)
 	write(sock, self->array, self->count);
 }
 
-inline void read_byte(int sock, byte *buf)
+static void read_byte(sock_t sock, byte *buf)
 {
+	struct timespec sleep_time;
+	// this is one ms
+	sleep_time.tv_sec = 0;
+	sleep_time.tv_nsec = 1000000;
 	while (read(sock, buf, 1) != 1) {
-		usleep(1000000);
+		// sleeping prevents the cpu from going crazy while waiting
+		// for socket input
+		nanosleep(&sleep_time, NULL);
 	}
 }
 
@@ -122,7 +129,7 @@ char *ByteStream_read_str(ByteStream *self)
 	return buf;
 }
 
-void ByteStream_read_sock(ByteStream *self, int sock)
+void ByteStream_read_sock(ByteStream *self, sock_t sock)
 {
 	byte ll;
 	read_byte(sock, &ll);
@@ -140,7 +147,12 @@ void ByteStream_read_sock(ByteStream *self, int sock)
 		len = 0;
 	}
 	byte buf[len];
-	read(sock, buf, len);
+	byte *pbuf = buf;
+	int pos = 0;
+	while (pos < len) {
+		pbuf += pos;
+		pos += read(sock, pbuf, len - pos);
+	}
 	int i;
 	for (i = 0; i < len; i++) {
 		ByteStream_write_byte(self, buf[i]);
@@ -200,9 +212,3 @@ void ByteStream_block_cipher(ByteStream *self)
 		ByteStream_write_u32(self, chunks[i]);
 	}
 }
-
-
-
-
-
-

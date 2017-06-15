@@ -13,10 +13,9 @@ static uint32_t pack_host(char *host)
 	return htonl(res);
 }
 
-int open_sock(char *host_name, int port)
+sock_t open_sock(char *host_name, int port)
 {
-	int sock;
-	sock = socket(AF_INET, SOCK_STREAM, 0);
+	sock_t sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0)
 		fatal("Socket can't be opened");
 	struct hostent *host = gethostbyname(host_name);
