@@ -3,8 +3,9 @@
 Framework for connecting an unofficial client to the official
 Transformice game.
 
-This is a work in progress, and uses POSIX system calls, so you can
-probably compile use it on unix-like operating systems.
+This is a work in progress, and uses POSIX system calls, so you will
+probably only be able to compile and use it on unix-like operating
+systems.
 
 ### Keys
 
@@ -24,11 +25,11 @@ I will not go into detail on how to obtain these, but once you do
 encode them in the file, with the 32 bit and 16 bit integers BOTH
 encoded as a **little** endian 32 bit integers. The string is encoded
 in ASCII with a byte before to denote the length. See the
-keys.bin.SAMPLE.md file to see an example.
+keys.bin.SAMPLE.md file to for an example.
 
 ### License
 
 MIT Liscense for all code, provided without warranty. See LICENSE file
 for more details.
 
-Transformice is probably a trademark owned by Atlier801 SARL.
+Transformice is probably a trademark owned by Atelier801 SARL.
