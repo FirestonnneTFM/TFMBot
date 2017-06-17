@@ -10,7 +10,6 @@
 typedef uint8_t byte;
 typedef int sock_t;
 
-sock_t open_sock(char *, int);
 void fatal(char *);
 
 #endif

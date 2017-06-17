@@ -131,6 +131,9 @@ char *ByteStream_read_str(ByteStream *self)
 
 void ByteStream_read_sock(ByteStream *self, sock_t sock)
 {
+	// Packet encoding: first byte (ll) tells how long the encoded
+	// length is (1 for byte, 2 for short), followed by the actual
+	// encoded length
 	byte ll;
 	read_byte(sock, &ll);
 	int len;
@@ -146,9 +149,14 @@ void ByteStream_read_sock(ByteStream *self, sock_t sock)
 		fatal("Malformed packet");
 		len = 0;
 	}
+	// Try to fill this buffer with the amount of bytes that was
+	// specified by the packet
 	byte buf[len];
+	// pbuf exists to keep a pointer to the start of the fill area
+	// pos is a relative count of this
 	byte *pbuf = buf;
 	int pos = 0;
+	// loop until buffer is filled
 	while (pos < len) {
 		pbuf += pos;
 		pos += read(sock, pbuf, len - pos);

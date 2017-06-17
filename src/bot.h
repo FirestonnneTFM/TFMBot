@@ -3,20 +3,25 @@
 
 #include "common.h"
 #include "byte_stream.h"
+#include "bot_api.h"
+#include "player.h"
+#include "connection.h"
 
 typedef struct {
-	sock_t sock;
-	byte key_offset;
+	Connection *main_conn;
+	Connection *game_conn;
+	BotApi *api;
+	Player *player;
 } Bot;
 
-Bot *Bot_new(void);
+Bot *Bot_new(int);
 void Bot_start(Bot *);
-void Bot_send(Bot *, ByteStream *, byte *);
 #define Bot_dispose(self)						\
 	do {										\
-	close(self->sock);							\
-	free(self);									\
-	self = NULL;								\
+		Connection_dispose(self->main_conn);	\
+		Connection_dispose(self->game_conn);	\
+		free(self);								\
+		self = NULL;							\
 	} while (0);
 
 #endif
