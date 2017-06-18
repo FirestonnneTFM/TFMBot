@@ -3,7 +3,6 @@
 #include "btea.h"
 #include <string.h>
 #include <stdint.h>
-#include <time.h>
 
 ByteStream *ByteStream_new()
 {
@@ -108,15 +107,11 @@ void ByteStream_write_sock(ByteStream *self, sock_t sock, byte k)
 }
 
 static void read_byte(sock_t sock, byte *buf)
-{
-	struct timespec sleep_time;
-	// this is one ms
-	sleep_time.tv_sec = 0;
-	sleep_time.tv_nsec = 1000000;
+{ 
 	while (read(sock, buf, 1) != 1) {
 		// sleeping prevents the cpu from going crazy while waiting
 		// for socket input
-		nanosleep(&sleep_time, NULL);
+		one_ms_wait();
 	}
 }
 
@@ -168,10 +163,9 @@ void ByteStream_read_sock(ByteStream *self, sock_t sock)
 	self->position = 0;
 }
 
-void ByteStream_print(ByteStream *self)
+void ByteStream_print(ByteStream *self, int i)
 {
-	int i;
-	for (i = 0; i < self->count; i++) {
+	for (; i < self->count; i++) {
 		printf("%02x ", self->array[i]);
 	}
 	putchar('\n');

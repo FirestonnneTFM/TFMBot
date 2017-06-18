@@ -23,7 +23,7 @@ uint32_t ByteStream_read_u32(ByteStream *);
 char *ByteStream_read_str(ByteStream *);
 void ByteStream_write_sock(ByteStream *, sock_t, byte);
 void ByteStream_read_sock(ByteStream *, sock_t);
-void ByteStream_print(ByteStream *);
+void ByteStream_print(ByteStream *, int);
 void ByteStream_xor_cipher(ByteStream *, int);
 void ByteStream_block_cipher(ByteStream *);
 

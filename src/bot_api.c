@@ -33,6 +33,8 @@ void BotApi_register(BotApi *self)
 {
 	if (Bot_Api_Ptr == Bot_Api_Num)
 		fatal("Attempt to register more bot apis than initialized");
+	if (self->name == NULL)
+		fatal("Bot api must declare a name");
 	Bot_Api_List[Bot_Api_Ptr] = self;
 	Bot_Api_Ptr ++;
 	printf("Registered module `%s`\n", self->name);

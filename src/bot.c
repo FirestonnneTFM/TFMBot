@@ -51,19 +51,24 @@ static inline void Bot_handle_packet(Bot *self, Connection *conn, uint16_t ccc, 
 		if (self->api->get_username == NULL)
 			username = "Souris";
 		else
-			username = self->api->get_username();
+			username = self->api->get_username(self->api);
 		char *password;
 		if (self->api->get_password == NULL)
 			password = NULL;
 		else
-			password = self->api->get_password();
+			password = self->api->get_password(self->api);
+		char *login_room;
+		if (self->api->get_login_room == NULL)
+			login_room = "village gogogo";
+		else
+			login_room = self->api->get_login_room(self->api);
 		
 		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x1A08);
 		ByteStream_write_str(b, username);
 		ByteStream_write_str(b, password);
 		ByteStream_write_str(b, "app:/TransformiceAIR.swf/[[DYNAMIC]]/2/[[DYNAMIC]]/4");
-		ByteStream_write_str(b, "village gogogo");
+		ByteStream_write_str(b, login_room);
 		ByteStream_write_u32(b, Login_Key ^ login_xor);
 		ByteStream_block_cipher(b);
 		ByteStream_write_byte(b, 0);
@@ -72,7 +77,7 @@ static inline void Bot_handle_packet(Bot *self, Connection *conn, uint16_t ccc, 
 		break;
 	}
 	case 0x1A02:
-		// some zero value
+		// I think this might be your forum ID, zero for guests
 		ByteStream_read_u32(b);
 		self->player->name = ByteStream_read_str(b);
 		break;
@@ -83,20 +88,73 @@ static inline void Bot_handle_packet(Bot *self, Connection *conn, uint16_t ccc, 
 		Connection_open(self->game_conn, ip, 5555);
 		free(ip);
 		if (self->api->on_connect) {
-			self->api->on_connect(self->player);
+			self->api->on_connect(self->api, self->player);
 		}
 
 		b = ByteStream_new();
+		ByteStream_write_u16(b, 0x2C01);
 		ByteStream_write_u32(b, self->player->id);
 		Connection_send(self->game_conn, b);
 		ByteStream_dispose(b);
 		break;
 	}
+	case 0x2C16:
+		self->game_conn->k = ByteStream_read_byte(b);
+		break;
 	case 0x1C32:
-		// this package appears to contain a lot of garbage
+		// this packet appears to contain a lot of garbage
 		// and it wants you to send back a bunch of garbage
 		// we are going to ignore it now
 		break;
+	case 0x0701:
+		// this one byte packet tells you what game you are joining
+		// 00 = transformice
+		break;
+	case 0x0515: {
+		// packet for room
+		if (self->api->on_room_join == NULL)
+			break;
+		ByteStream_read_byte(b);
+		char *roomname = ByteStream_read_str(b);
+		self->api->on_room_join(self->api, roomname);
+		free(roomname);
+		break;
+	}
+	case 0x0502: {
+		// packet for map
+		if (self->api->on_new_map == NULL)
+			break;
+		uint32_t mapcode = ByteStream_read_u32(b);
+		uint16_t player_count = ByteStream_read_u16(b);
+		// this byte is always 0x01 (maybe it signals if the map is
+		// compressed?)
+		ByteStream_read_byte(b);
+		uint32_t compressed_map_len = ByteStream_read_u32(b);
+		b->position += compressed_map_len;
+		char *map_author = ByteStream_read_str(b);
+		byte p_code = ByteStream_read_byte(b);
+		self->api->on_new_map(self->api, mapcode, map_author, p_code, player_count);
+		break;
+	}
+	case 0x0101: {
+		// old protocol packet (why these still exist nobody knows)
+		// this u16 is the length of the old protocol packet
+		// unnecessary since the whole packet has a length
+		ByteStream_read_u16(b);
+		uint16_t old_ccc = ByteStream_read_u16(b);
+		switch (old_ccc) {
+		case 0x0809: {
+			// info on who is in the room
+			// TODO
+			break;
+		}
+		default:
+			printf("OLD PROTOCOL: %04x\n", old_ccc);
+			printf("%04x ", ccc);
+			ByteStream_print(b, 6);
+		}
+		break;
+	}
 	case 0x1404:
 	case 0x1009:
 	case 0x6406:
@@ -107,11 +165,12 @@ static inline void Bot_handle_packet(Bot *self, Connection *conn, uint16_t ccc, 
 	case 0x1f01:
 	case 0x1a21:
 	case 0x1c02:
+	case 0x071E:
 		// who cares
 		break;
 	default:
 		printf("%04x ", ccc);
-		ByteStream_print(b);
+		ByteStream_print(b, 2);
 	}
 }
 
@@ -160,6 +219,7 @@ void Bot_start(Bot *self)
 	while (true) {
 		Bot_check_conn(self, self->main_conn);
 		Bot_check_conn(self, self->game_conn);
+		one_ms_wait();
 	}
 }
 
