@@ -4,16 +4,16 @@
 #include "common.h"
 #include "byte_stream.h"
 
-typedef struct {
+struct Connection {
 	sock_t sock;
 	byte k;
-} Connection;
+};
 
 
-void Connection_send(Connection *, ByteStream *);
-void Connection_open(Connection *, char *host, int port);
+void Connection_send(struct Connection *, struct ByteStream *);
+void Connection_open(struct Connection *, char *host, int port);
 
-#define Connection_new()((Connection*)calloc(1, sizeof(Connection)))
+#define Connection_new()((struct Connection*)calloc(1, sizeof(struct Connection)))
 
 #define Connection_dispose(self)				\
 	do {										\

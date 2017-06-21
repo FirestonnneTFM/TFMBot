@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-#define UNUSED(...)((void)(__VA_ARGS__))
+#define UNUSED(x)((void)(x))
 #define one_ms_wait()(usleep(1000000))
 
 typedef uint8_t byte;

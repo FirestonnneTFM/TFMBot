@@ -10,8 +10,8 @@ int main(int argc, char **argv)
 	init_keys();
 	init_bot_api(1);
 	register_apibot_afk();
-	fatal("offline");
-	Bot *bot = Bot_new(0);
+
+	struct Bot *bot = Bot_new(0);
 	Bot_start(bot);
 	Bot_dispose(bot);
 	

@@ -2,20 +2,22 @@
 #define BOT_H
 
 #include "common.h"
+#include "connection.h"
 #include "byte_stream.h"
 #include "bot_api.h"
 #include "player.h"
-#include "connection.h"
+#include "room.h"
 
-typedef struct {
-	Connection *main_conn;
-	Connection *game_conn;
-	BotApi *api;
-	Player *player;
-} Bot;
+struct Bot {
+	struct Connection *main_conn;
+	struct Connection *game_conn;
+	struct BotApi *api;
+	struct Player *player;
+	struct Room *room;
+};
 
-Bot *Bot_new(int);
-void Bot_start(Bot *);
+struct Bot *Bot_new(int);
+void Bot_start(struct Bot *);
 #define Bot_dispose(self)						\
 	do {										\
 		Connection_dispose(self->main_conn);	\

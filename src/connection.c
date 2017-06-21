@@ -4,7 +4,7 @@
 
 #include "connection.h"
 
-void Connection_send(Connection *self, ByteStream *b)
+void Connection_send(struct Connection *self, struct ByteStream *b)
 {
 	ByteStream_write_sock(b, self->sock, self->k);
 	self->k = (self->k + 1) % 100;
@@ -36,7 +36,7 @@ static sock_t open_sock(char *host_name, int port)
 	return sock;
 }
 
-void Connection_open(Connection *self, char *host, int port)
+void Connection_open(struct Connection *self, char *host, int port)
 {
 	self->sock = open_sock(host, port);
 }

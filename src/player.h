@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-typedef struct {
+struct Player {
 	uint32_t id;
 	char *name;
 	uint16_t title;
@@ -16,8 +16,8 @@ typedef struct {
 	byte key_jumping;
 	byte run_animation;
 	uint32_t round_num;
-} Player;
+};
 
-Player *Player_new(void);
+struct Player *Player_new(void);
 
 #endif

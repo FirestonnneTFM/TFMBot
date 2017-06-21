@@ -7,17 +7,18 @@
 //#define HOST "127.0.0.1"
 #define PORT 5555
 
-Bot *Bot_new(int which_api)
+struct Bot *Bot_new(int which_api)
 {
-	Bot *self = (Bot*)malloc(sizeof(Bot));
+	struct Bot *self = (struct Bot*)malloc(sizeof(struct Bot));
 	self->main_conn = Connection_new();
 	self->game_conn = Connection_new();
 	self->api = get_registered_api(which_api);
+	self->room = Room_new();
 	self->player = Player_new();
 	return self;
 }
 
-static inline void Bot_handle_packet(Bot *self, Connection *conn, uint16_t ccc, ByteStream *b)
+static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, uint16_t ccc, struct ByteStream *b)
 {
 	switch (ccc) {
 	case 0x1A03: {
@@ -51,17 +52,17 @@ static inline void Bot_handle_packet(Bot *self, Connection *conn, uint16_t ccc, 
 		if (self->api->get_username == NULL)
 			username = "Souris";
 		else
-			username = self->api->get_username(self->api);
+			username = self->api->get_username(self);
 		char *password;
 		if (self->api->get_password == NULL)
 			password = NULL;
 		else
-			password = self->api->get_password(self->api);
+			password = self->api->get_password(self);
 		char *login_room;
 		if (self->api->get_login_room == NULL)
 			login_room = "village gogogo";
 		else
-			login_room = self->api->get_login_room(self->api);
+			login_room = self->api->get_login_room(self);
 		
 		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x1A08);
@@ -88,7 +89,7 @@ static inline void Bot_handle_packet(Bot *self, Connection *conn, uint16_t ccc, 
 		Connection_open(self->game_conn, ip, 5555);
 		free(ip);
 		if (self->api->on_connect) {
-			self->api->on_connect(self->api, self->player);
+			self->api->on_connect(self);
 		}
 
 		b = ByteStream_new();
@@ -110,30 +111,30 @@ static inline void Bot_handle_packet(Bot *self, Connection *conn, uint16_t ccc, 
 		// this one byte packet tells you what game you are joining
 		// 00 = transformice
 		break;
-	case 0x0515: {
+	case 0x0515:
 		// packet for room
 		if (self->api->on_room_join == NULL)
 			break;
 		ByteStream_read_byte(b);
-		char *roomname = ByteStream_read_str(b);
-		self->api->on_room_join(self->api, roomname);
-		free(roomname);
+		free(self->room->name);
+		self->room->name = ByteStream_read_str(b);
+		self->api->on_room_join(self);
 		break;
-	}
 	case 0x0502: {
 		// packet for map
 		if (self->api->on_new_map == NULL)
 			break;
-		uint32_t mapcode = ByteStream_read_u32(b);
-		uint16_t player_count = ByteStream_read_u16(b);
+		self->room->map_code = ByteStream_read_u32(b);
+		self->room->player_count = ByteStream_read_u16(b);
 		// this byte is always 0x01 (maybe it signals if the map is
 		// compressed?)
 		ByteStream_read_byte(b);
 		uint32_t compressed_map_len = ByteStream_read_u32(b);
 		b->position += compressed_map_len;
-		char *map_author = ByteStream_read_str(b);
-		byte p_code = ByteStream_read_byte(b);
-		self->api->on_new_map(self->api, mapcode, map_author, p_code, player_count);
+		free(self->room->map_author);
+		self->room->map_author = ByteStream_read_str(b);
+		self->room->map_pcode = ByteStream_read_byte(b);
+		self->api->on_new_map(self);
 		break;
 	}
 	case 0x0101: {
@@ -174,14 +175,14 @@ static inline void Bot_handle_packet(Bot *self, Connection *conn, uint16_t ccc, 
 	}
 }
 
-static inline void Bot_check_conn(Bot *self, Connection *conn)
+static inline void Bot_check_conn(struct Bot *self, struct Connection *conn)
 {
 	if (conn->sock == 0)
 		return;
 	int count;
 	ioctl(conn->sock, FIONREAD, &count);
 	if (count > 0) {
-		ByteStream *b = ByteStream_new();
+		struct ByteStream *b = ByteStream_new();
 		ByteStream_read_sock(b, conn->sock);
 		Bot_handle_packet(self, conn, ByteStream_read_u16(b), b);
 		ByteStream_dispose(b);
@@ -195,11 +196,11 @@ static inline void Bot_check_conn(Bot *self, Connection *conn)
 
 #define FLASH_SERVER_STRING "A=t&SA=t&SV=t&EV=t&MP3=t&AE=t&VE=t&ACC=t&PR=t&SP=f&SB=f&DEB=f&V=WIN 25,0,0,127&M=Adobe Windows&R=1366x768&COL=color&AR=1.0&OS=Windows 8&ARCH=x86&L=en&IME=t&PR32=t&PR64=t&LS=en-US&PT=Desktop&AVD=f&LFD=f&WD=f&TLS=t&ML=5.1&DP=72"
 
-void Bot_start(Bot *self)
+void Bot_start(struct Bot *self)
 {
 	Connection_open(self->main_conn, HOST, PORT);
 	// handshake packet
-	ByteStream *b = ByteStream_new();
+	struct ByteStream *b = ByteStream_new();
 	ByteStream_write_u16(b, 0x1C01);
 	ByteStream_write_u16(b, Handshake_Number);
 	ByteStream_write_str(b, Handshake_String);

@@ -4,9 +4,9 @@
 #include <string.h>
 #include <stdint.h>
 
-ByteStream *ByteStream_new()
+struct ByteStream *ByteStream_new()
 {
-	ByteStream *self = (ByteStream*)malloc(sizeof(ByteStream));
+	struct ByteStream *self = (struct ByteStream*)malloc(sizeof(struct ByteStream));
 	self->capacity = 10;
 	self->count = 0;
 	self->position = 0;
@@ -14,7 +14,7 @@ ByteStream *ByteStream_new()
 	return self;
 }
 
-void ByteStream_write_byte(ByteStream *self, byte value)
+void ByteStream_write_byte(struct ByteStream *self, byte value)
 {
 	if (self->position >= self->capacity) {
 		self->capacity <<= 1;
@@ -28,7 +28,7 @@ void ByteStream_write_byte(ByteStream *self, byte value)
 	}
 }
 
-void ByteStream_write_bytes(ByteStream *self, int len, byte *buf)
+void ByteStream_write_bytes(struct ByteStream *self, int len, byte *buf)
 {
 	int i;
 	for (i = 0; i < len; i++) {
@@ -36,13 +36,13 @@ void ByteStream_write_bytes(ByteStream *self, int len, byte *buf)
 	}
 }
 
-void ByteStream_write_u16(ByteStream *self, uint16_t value)
+void ByteStream_write_u16(struct ByteStream *self, uint16_t value)
 {
 	ByteStream_write_byte(self, value >> 8 & 0xff);
 	ByteStream_write_byte(self, value & 0xff);
 }
 
-void ByteStream_write_u32(ByteStream *self, uint32_t value)
+void ByteStream_write_u32(struct ByteStream *self, uint32_t value)
 {
 	ByteStream_write_byte(self, value >> 24 & 0xff);
 	ByteStream_write_byte(self, value >> 16 & 0xff);
@@ -50,14 +50,14 @@ void ByteStream_write_u32(ByteStream *self, uint32_t value)
 	ByteStream_write_byte(self, value & 0xff);
 }
 
-byte ByteStream_read_byte(ByteStream *self)
+byte ByteStream_read_byte(struct ByteStream *self)
 {
 	if (self->position >= self->count)
 		fatal("Read beyond of stream");
 	return self->array[self->position++];
 }
 
-void ByteStream_read_bytes(ByteStream *self, byte *buf, int len)
+void ByteStream_read_bytes(struct ByteStream *self, byte *buf, int len)
 {
 	int i;
 	for (i = 0; i < len; i++) {
@@ -65,18 +65,18 @@ void ByteStream_read_bytes(ByteStream *self, byte *buf, int len)
 	}
 }
 
-uint16_t ByteStream_read_u16(ByteStream *self)
+uint16_t ByteStream_read_u16(struct ByteStream *self)
 {
 	return (ByteStream_read_byte(self) << 8) | ByteStream_read_byte(self);
 }
 
-uint32_t ByteStream_read_u32(ByteStream *self)
+uint32_t ByteStream_read_u32(struct ByteStream *self)
 {
 	return (ByteStream_read_byte(self) << 24) | (ByteStream_read_byte(self) << 16)
 		| (ByteStream_read_byte(self) << 8) | ByteStream_read_byte(self);
 }
 
-void ByteStream_write_str(ByteStream *self, char *buf)
+void ByteStream_write_str(struct ByteStream *self, char *buf)
 {
 	if (buf) {
 		int len = strlen(buf);
@@ -87,7 +87,7 @@ void ByteStream_write_str(ByteStream *self, char *buf)
 	}
 }
 
-void ByteStream_write_sock(ByteStream *self, sock_t sock, byte k)
+void ByteStream_write_sock(struct ByteStream *self, sock_t sock, byte k)
 {
 	byte header[4];
 	byte header_size;
@@ -115,7 +115,7 @@ static void read_byte(sock_t sock, byte *buf)
 	}
 }
 
-char *ByteStream_read_str(ByteStream *self)
+char *ByteStream_read_str(struct ByteStream *self)
 {
 	uint16_t len = ByteStream_read_u16(self);
 	char *buf = (char*)malloc(sizeof(char) * (len + 1));
@@ -124,7 +124,7 @@ char *ByteStream_read_str(ByteStream *self)
 	return buf;
 }
 
-void ByteStream_read_sock(ByteStream *self, sock_t sock)
+void ByteStream_read_sock(struct ByteStream *self, sock_t sock)
 {
 	// Packet encoding: first byte (ll) tells how long the encoded
 	// length is (1 for byte, 2 for short), followed by the actual
@@ -163,7 +163,7 @@ void ByteStream_read_sock(ByteStream *self, sock_t sock)
 	self->position = 0;
 }
 
-void ByteStream_print(ByteStream *self, int i)
+void ByteStream_print(struct ByteStream *self, int i)
 {
 	for (; i < self->count; i++) {
 		printf("%02x ", self->array[i]);
@@ -171,7 +171,7 @@ void ByteStream_print(ByteStream *self, int i)
 	putchar('\n');
 }
 
-void ByteStream_xor_cipher(ByteStream *self, int k)
+void ByteStream_xor_cipher(struct ByteStream *self, int k)
 {
 	// do not mess with the CCC prefix !
 	// start at 2
@@ -182,7 +182,7 @@ void ByteStream_xor_cipher(ByteStream *self, int k)
 	
 }
 
-void ByteStream_block_cipher(ByteStream *self)
+void ByteStream_block_cipher(struct ByteStream *self)
 {
 	if (self->count < 2)
 		fatal("Block cipher attempted on empty ByteStream");
