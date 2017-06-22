@@ -8,7 +8,10 @@
 #include "player.h"
 #include "room.h"
 
+#define TICK_INTERVAL 500
+
 struct Bot {
+	bool running;
 	struct Connection *main_conn;
 	struct Connection *game_conn;
 	struct BotApi *api;
@@ -18,6 +21,8 @@ struct Bot {
 
 struct Bot *Bot_new(int);
 void Bot_start(struct Bot *);
+void Bot_send_player_coords(struct Bot *, struct Player *);
+
 #define Bot_dispose(self)						\
 	do {										\
 		Connection_dispose(self->main_conn);	\

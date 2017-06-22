@@ -25,14 +25,15 @@ static void on_room_join(struct Bot *self)
 }
 
 static void on_new_map(struct Bot *self) {
-	 printf("New map: @%u by %s (P%u) : %u players", self->room->map_code,
+	 printf("New map: @%u by %s (P%u) : %u players\n", self->room->map_code,
 			self->room->map_author, self->room->map_pcode, self->room->player_count);
-	puts("New map");
 }
 
 static void on_connect(struct Bot *self)
 {
 	printf("Connected with name: %s\n", self->player->name);
+	self->player->x = 0x1921;
+	self->player->y = 0x0A0C;
 }
 
 static char *get_login_room(struct Bot *self)
@@ -47,6 +48,13 @@ static char *get_username(struct Bot *self)
 	return "Sourisss";
 }
 
+static void on_tick(struct Bot *self, uint32_t counter)
+{
+	if (counter % (3000 / TICK_INTERVAL))
+		return;
+	Bot_send_player_coords(self, self->player);
+}
+
 void register_apibot_afk()
 {
 	struct BotApi *api = BotApi_new("afk bot");
@@ -58,5 +66,6 @@ void register_apibot_afk()
 	api->on_player_join = on_player_join;
 	api->on_player_death = on_player_death;
 	api->on_chat = on_chat;
+	api->on_tick = on_tick;
 	BotApi_register(api);
 }

@@ -2,6 +2,7 @@
 #define PLAYER_H
 
 #include "common.h"
+#include "byte_stream.h"
 
 struct Player {
 	uint32_t id;
@@ -13,11 +14,17 @@ struct Player {
 	uint16_t acc_y;
 	byte key_right;
 	byte key_left;
-	byte key_jumping;
-	byte run_animation;
+	byte jumping;
+	byte animation_frame;
 	uint32_t round_num;
 };
 
 struct Player *Player_new(void);
+void Player_from_old_protocol(struct Player *, struct ByteStream *);
+#define Player_dispose(self)					\
+	do {										\
+		free(self);								\
+		self = NULL;							\
+	} while (0)
 
 #endif

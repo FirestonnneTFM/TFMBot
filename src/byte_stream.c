@@ -111,7 +111,7 @@ static void read_byte(sock_t sock, byte *buf)
 	while (read(sock, buf, 1) != 1) {
 		// sleeping prevents the cpu from going crazy while waiting
 		// for socket input
-		one_ms_wait();
+		wait_ms(1);
 	}
 }
 

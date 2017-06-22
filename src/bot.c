@@ -10,12 +10,30 @@
 struct Bot *Bot_new(int which_api)
 {
 	struct Bot *self = (struct Bot*)malloc(sizeof(struct Bot));
+	self->running = true;
 	self->main_conn = Connection_new();
 	self->game_conn = Connection_new();
 	self->api = get_registered_api(which_api);
 	self->room = Room_new();
 	self->player = Player_new();
 	return self;
+}
+
+void Bot_send_player_coords(struct Bot *self, struct Player *player)
+{
+	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u32(b, player->round_num);
+	ByteStream_write_byte(b, player->key_right);
+	ByteStream_write_byte(b, player->key_left);
+	ByteStream_write_u16(b, player->x);
+	ByteStream_write_u16(b, player->y);
+	ByteStream_write_u16(b, player->acc_x);
+	ByteStream_write_u16(b, player->acc_y);
+	ByteStream_write_byte(b, player->jumping);
+	ByteStream_write_byte(b, player->animation_frame);
+	ByteStream_write_byte(b, 0);
+	Connection_send(self->game_conn, b);
+	ByteStream_dispose(b);
 }
 
 static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, uint16_t ccc, struct ByteStream *b)
@@ -140,13 +158,20 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 	case 0x0101: {
 		// old protocol packet (why these still exist nobody knows)
 		// this u16 is the length of the old protocol packet
-		// unnecessary since the whole packet has a length
-		ByteStream_read_u16(b);
+		if (ByteStream_read_u16(b) < 2)
+			break;
 		uint16_t old_ccc = ByteStream_read_u16(b);
 		switch (old_ccc) {
 		case 0x0809: {
 			// info on who is in the room
-			// TODO
+			// TODO, keep a list of every player in the room
+			break;
+		}
+		case 0x0808: {
+			struct Player *player = Player_new();
+			Player_from_old_protocol(player, b);
+			self->api->on_player_join(self, player);
+			Player_dispose(player);
 			break;
 		}
 		default:
@@ -196,6 +221,32 @@ static inline void Bot_check_conn(struct Bot *self, struct Connection *conn)
 
 #define FLASH_SERVER_STRING "A=t&SA=t&SV=t&EV=t&MP3=t&AE=t&VE=t&ACC=t&PR=t&SP=f&SB=f&DEB=f&V=WIN 25,0,0,127&M=Adobe Windows&R=1366x768&COL=color&AR=1.0&OS=Windows 8&ARCH=x86&L=en&IME=t&PR32=t&PR64=t&LS=en-US&PT=Desktop&AVD=f&LFD=f&WD=f&TLS=t&ML=5.1&DP=72"
 
+#define TEN_SEC_INTERVAL (10000 / TICK_INTERVAL)
+
+static void *sync_thread_function(void *ptr)
+{
+	struct Bot *self = (struct Bot*)ptr;
+	uint32_t counter = 1;
+	while (self->running) {
+		if (self->api->on_tick)
+			self->api->on_tick(self, counter);
+		if (counter % TEN_SEC_INTERVAL == 0) {
+			// we must send this heartbeat every so often
+			// ten seconds is fine
+			struct ByteStream *b = ByteStream_new();
+			ByteStream_write_u16(b, 0x1A1A);
+			// send it to both connections
+			Connection_send(self->main_conn, b);
+			Connection_send(self->game_conn, b);
+			ByteStream_dispose(b);
+		}
+			
+		wait_ms(TICK_INTERVAL);
+		counter ++;
+	}
+	return NULL;
+}
+
 void Bot_start(struct Bot *self)
 {
 	Connection_open(self->main_conn, HOST, PORT);
@@ -217,10 +268,18 @@ void Bot_start(struct Bot *self)
 	ByteStream_write_str(b, NULL);
 	Connection_send(self->main_conn, b);
 	ByteStream_dispose(b);
-	while (true) {
+	pthread_t sync_thread;
+	if (pthread_create(&sync_thread, NULL, sync_thread_function, self))
+		fatal("Thread creation failed");
+	while (self->running) {
 		Bot_check_conn(self, self->main_conn);
 		Bot_check_conn(self, self->game_conn);
-		one_ms_wait();
+		usleep(1);
 	}
+	pthread_join(sync_thread, NULL);
 }
+
+
+
+
 
