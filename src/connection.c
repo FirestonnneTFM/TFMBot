@@ -10,6 +10,12 @@ void Connection_send(struct Connection *self, struct ByteStream *b)
 	self->k = (self->k + 1) % 100;
 }
 
+void Connection_dispose(struct Connection *self)
+{
+	close(self->sock);
+	free(self);
+}
+
 static uint32_t pack_host(char *host)
 {
 	uint32_t res = 0;

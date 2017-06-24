@@ -35,9 +35,10 @@ static void on_player_move(struct Bot *self, struct Player *player)
 	if (target && player->id == target->id) {
 		struct tuple *t = (struct tuple*)malloc(sizeof(struct tuple));
 		t->bot = self;
-		t->player = player;
+		t->player = Player_new();
+		Player_copy(t->player, player);
 		Scheduler_add(Main_Scheduler, Task_new(((int*)self->api_data)[0] * 100,
-											   send_target_coords, t));
+			send_target_coords, t));
 	}
 }
 
@@ -64,7 +65,7 @@ static void on_connect(struct Bot *self)
 static char *get_login_room(struct Bot *self)
 {
 	UNUSED(self);
-	return "village gogogo";
+	return "801";
 }
 
 static char *get_username(struct Bot *self)

@@ -14,6 +14,12 @@ struct ByteStream *ByteStream_new()
 	return self;
 }
 
+void ByteStream_dispose(struct ByteStream *self)
+{
+	free(self->array);
+	free(self);
+}
+
 void ByteStream_write_byte(struct ByteStream *self, byte value)
 {
 	if (self->position >= self->capacity) {
@@ -102,13 +108,18 @@ void ByteStream_write_sock(struct ByteStream *self, sock_t sock, byte k)
 		header[2] = (byte)(self->count & 0xff);
 	}
 	header[header_size - 1] = k;
-	write(sock, header, header_size);
-	write(sock, self->array, self->count);
+	if (write(sock, header, header_size) != header_size)
+		fatal("Sock write failed");
+	if (write(sock, self->array, self->count) != self->count)
+		fatal("Sock write failed");
 }
 
 static void read_byte(sock_t sock, byte *buf)
-{ 
-	while (read(sock, buf, 1) != 1) {
+{
+	int n;
+	while ((n = read(sock, buf, 1)) != 1) {
+		if (n < 0)
+			fatal("Sock closed");
 		// sleeping prevents the cpu from going crazy while waiting
 		// for socket input
 		sleep_ms(1);
@@ -154,7 +165,10 @@ void ByteStream_read_sock(struct ByteStream *self, sock_t sock)
 	// loop until buffer is filled
 	while (pos < len) {
 		pbuf += pos;
-		pos += read(sock, pbuf, len - pos);
+		int n = read(sock, pbuf, len - pos);
+		if (n < 0)
+			fatal("Read failed");
+		pos += n;
 	}
 	int i;
 	for (i = 0; i < len; i++) {
@@ -179,7 +193,6 @@ void ByteStream_xor_cipher(struct ByteStream *self, int k)
 	for (i = 2; i < self->count; i++, k++) {
 		self->array[i] ^= Msg_Key[k % 20];
 	}
-	
 }
 
 void ByteStream_block_cipher(struct ByteStream *self)

@@ -35,6 +35,13 @@ struct Bot *Bot_new(int which_api)
 	return self;
 }
 
+void Bot_dispose(struct Bot *self)
+{
+	Connection_dispose(self->main_conn);
+	Connection_dispose(self->game_conn);
+	free(self);
+}
+
 void Bot_send_player_coords(struct Bot *self, struct Player *player)
 {
 	struct ByteStream *b = ByteStream_new();
@@ -66,14 +73,14 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			   country, community, players_online);
 		free(country);
 		free(community);
-		
+
 		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x0802);
 		// 0x0E is for E2 community
 		ByteStream_write_u16(b, 0x0E00);
 		Connection_send(conn, b);
 		ByteStream_dispose(b);
-		
+
 		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x1C11);
 		ByteStream_write_str(b, "en");
@@ -98,7 +105,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			login_room = "village gogogo";
 		else
 			login_room = self->api->get_login_room(self);
-		
+
 		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x1A08);
 		ByteStream_write_str(b, username);
@@ -209,8 +216,8 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		if (self->api->on_player_move == NULL)
 			break;
 		struct Player *player = Player_new();
-		player->id = ByteStream_read_u32(b)
-;		player->round_num = ByteStream_read_u32(b);
+		player->id = ByteStream_read_u32(b);
+		player->round_num = ByteStream_read_u32(b);
 		player->key_right = ByteStream_read_byte(b);
 		player->key_left = ByteStream_read_byte(b);
 		player->x = ByteStream_read_u16(b);
@@ -241,18 +248,21 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 	}
 }
 
-static inline void Bot_check_conn(struct Bot *self, struct Connection *conn)
+static bool Bot_check_conn(struct Bot *self, struct Connection *conn)
 {
 	if (conn->sock == 0)
-		return;
+		return false;
 	int count;
-	ioctl(conn->sock, FIONREAD, &count);
-	if (count > 0) {
+	if (ioctl(conn->sock, FIONREAD, &count) == -1)
+		fatal("ioctl failed");
+	bool ret = count > 0;
+	if (ret) {
 		struct ByteStream *b = ByteStream_new();
 		ByteStream_read_sock(b, conn->sock);
 		Bot_handle_packet(self, conn, ByteStream_read_u16(b), b);
 		ByteStream_dispose(b);
 	}
+	return ret;
 }
 
 // these are pretty ugly, and are probably don't need to be accurate,

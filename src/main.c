@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 		pthread_t thread;
 		if (pthread_create(&thread, NULL, run_bot, bot))
 			fatal("Thread creation failed");
-		sleep_ms(1500);
+		sleep_ms(2500);
 	}
 	while (true) {
 		Scheduler_tick(Main_Scheduler);

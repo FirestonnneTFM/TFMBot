@@ -17,14 +17,12 @@ struct Player {
 	byte jumping;
 	byte animation_frame;
 	uint32_t round_num;
+	struct Player *next;
 };
 
 struct Player *Player_new(void);
 void Player_from_old_protocol(struct Player *, struct ByteStream *);
-#define Player_dispose(self)					\
-	do {										\
-		free(self);								\
-		self = NULL;							\
-	} while (0)
+void Player_copy(struct Player *, struct Player *);
+void Player_dispose(struct Player *);
 
 #endif

@@ -19,15 +19,8 @@ struct Bot {
 };
 
 struct Bot *Bot_new(int);
+void Bot_dispose(struct Bot *);
 void Bot_start(struct Bot *);
 void Bot_send_player_coords(struct Bot *, struct Player *);
-
-#define Bot_dispose(self)						\
-	do {										\
-		Connection_dispose(self->main_conn);	\
-		Connection_dispose(self->game_conn);	\
-		free(self);								\
-		self = NULL;							\
-	} while (0);
 
 #endif

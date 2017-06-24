@@ -11,6 +11,7 @@ struct ByteStream {
 };
 
 struct ByteStream *ByteStream_new(void);
+void ByteStream_dispose(struct ByteStream *);
 void ByteStream_write_byte(struct ByteStream *, byte);
 void ByteStream_write_bytes(struct ByteStream *, int, byte *);
 void ByteStream_write_u16(struct ByteStream *, uint16_t);
@@ -26,12 +27,5 @@ void ByteStream_read_sock(struct ByteStream *, sock_t);
 void ByteStream_print(struct ByteStream *, int);
 void ByteStream_xor_cipher(struct ByteStream *, int);
 void ByteStream_block_cipher(struct ByteStream *);
-
-#define ByteStream_dispose(self)				\
-	do {										\
-		free(self->array);						\
-		free(self);								\
-		self = NULL;							\
-	} while(0)
 
 #endif
