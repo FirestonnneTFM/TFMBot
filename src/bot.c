@@ -2,15 +2,31 @@
 #include <sys/ioctl.h>
 #include "bot.h"
 #include "key_manager.h"
+#include "scheduler.h"
 
 #define HOST "164.132.202.12"
 //#define HOST "127.0.0.1"
 #define PORT 5555
 
+static bool heartbeat_task(void *ptr)
+{
+	struct Bot *self = (struct Bot*)ptr;
+	// we must send this heartbeat every so often
+	// ten seconds is fine
+	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u16(b, 0x1A1A);
+	// send it to both connections
+	Connection_send(self->main_conn, b);
+	Connection_send(self->game_conn, b);
+	ByteStream_dispose(b);
+	return true;
+}
+
 struct Bot *Bot_new(int which_api)
 {
 	struct Bot *self = (struct Bot*)malloc(sizeof(struct Bot));
 	self->running = true;
+	self->api_data = NULL;
 	self->main_conn = Connection_new();
 	self->game_conn = Connection_new();
 	self->api = get_registered_api(which_api);
@@ -22,6 +38,7 @@ struct Bot *Bot_new(int which_api)
 void Bot_send_player_coords(struct Bot *self, struct Player *player)
 {
 	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u16(b, 0x0404);
 	ByteStream_write_u32(b, player->round_num);
 	ByteStream_write_byte(b, player->key_right);
 	ByteStream_write_byte(b, player->key_left);
@@ -109,7 +126,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		if (self->api->on_connect) {
 			self->api->on_connect(self);
 		}
-
+		Scheduler_add(Main_Scheduler, Task_new(10000, heartbeat_task, self));
 		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x2C01);
 		ByteStream_write_u32(b, self->player->id);
@@ -168,17 +185,41 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			break;
 		}
 		case 0x0808: {
+			// new player joins rooms
 			struct Player *player = Player_new();
 			Player_from_old_protocol(player, b);
 			self->api->on_player_join(self, player);
-			Player_dispose(player);
+			break;
+		}
+		case 0x0805: {
+			// gets sent when somebody dies
+			break;
+		}
+		case 0x0807: {
+			// gets sent when somebody leaves the room
 			break;
 		}
 		default:
 			printf("OLD PROTOCOL: %04x\n", old_ccc);
-			printf("%04x ", ccc);
 			ByteStream_print(b, 6);
 		}
+		break;
+	}
+	case 0x0404: {
+		if (self->api->on_player_move == NULL)
+			break;
+		struct Player *player = Player_new();
+		player->id = ByteStream_read_u32(b)
+;		player->round_num = ByteStream_read_u32(b);
+		player->key_right = ByteStream_read_byte(b);
+		player->key_left = ByteStream_read_byte(b);
+		player->x = ByteStream_read_u16(b);
+		player->y = ByteStream_read_u16(b);
+		player->acc_x = ByteStream_read_u16(b);
+		player->acc_y = ByteStream_read_u16(b);
+		player->jumping = ByteStream_read_byte(b);
+		player->animation_frame = ByteStream_read_byte(b);
+		self->api->on_player_move(self, player);
 		break;
 	}
 	case 0x1404:
@@ -194,9 +235,9 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 	case 0x071E:
 		// who cares
 		break;
-	default:
-		printf("%04x ", ccc);
-		ByteStream_print(b, 2);
+		//default:
+		//printf("%04x ", ccc);
+		//ByteStream_print(b, 2);
 	}
 }
 
@@ -221,32 +262,6 @@ static inline void Bot_check_conn(struct Bot *self, struct Connection *conn)
 
 #define FLASH_SERVER_STRING "A=t&SA=t&SV=t&EV=t&MP3=t&AE=t&VE=t&ACC=t&PR=t&SP=f&SB=f&DEB=f&V=WIN 25,0,0,127&M=Adobe Windows&R=1366x768&COL=color&AR=1.0&OS=Windows 8&ARCH=x86&L=en&IME=t&PR32=t&PR64=t&LS=en-US&PT=Desktop&AVD=f&LFD=f&WD=f&TLS=t&ML=5.1&DP=72"
 
-#define TEN_SEC_INTERVAL (10000 / TICK_INTERVAL)
-
-static void *sync_thread_function(void *ptr)
-{
-	struct Bot *self = (struct Bot*)ptr;
-	uint32_t counter = 1;
-	while (self->running) {
-		if (self->api->on_tick)
-			self->api->on_tick(self, counter);
-		if (counter % TEN_SEC_INTERVAL == 0) {
-			// we must send this heartbeat every so often
-			// ten seconds is fine
-			struct ByteStream *b = ByteStream_new();
-			ByteStream_write_u16(b, 0x1A1A);
-			// send it to both connections
-			Connection_send(self->main_conn, b);
-			Connection_send(self->game_conn, b);
-			ByteStream_dispose(b);
-		}
-			
-		wait_ms(TICK_INTERVAL);
-		counter ++;
-	}
-	return NULL;
-}
-
 void Bot_start(struct Bot *self)
 {
 	Connection_open(self->main_conn, HOST, PORT);
@@ -268,18 +283,10 @@ void Bot_start(struct Bot *self)
 	ByteStream_write_str(b, NULL);
 	Connection_send(self->main_conn, b);
 	ByteStream_dispose(b);
-	pthread_t sync_thread;
-	if (pthread_create(&sync_thread, NULL, sync_thread_function, self))
-		fatal("Thread creation failed");
+
 	while (self->running) {
 		Bot_check_conn(self, self->main_conn);
 		Bot_check_conn(self, self->game_conn);
-		usleep(1);
+		sleep_ms(1);
 	}
-	pthread_join(sync_thread, NULL);
 }
-
-
-
-
-

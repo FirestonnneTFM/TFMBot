@@ -26,7 +26,7 @@ void Player_from_old_protocol(struct Player *self, struct ByteStream *b)
 	byte digit;
 	while ((digit = ByteStream_read_byte(b)) != '#') {
 		self->id *= 10;
-		self->id += digit;
+		self->id += digit - '0';
 	}
 }
 

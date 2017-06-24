@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 #define UNUSED(x)((void)(x))
-#define wait_ms(x)(usleep(1000000 * x))
+#define sleep_ms(x)(usleep(1000 * x))
 
 typedef uint8_t byte;
 typedef int sock_t;

@@ -8,7 +8,6 @@ struct Bot;
 
 struct BotApi {
 	const char *name;
-	void *data;
 	char *(*get_username)(struct Bot *);
 	char *(*get_password)(struct Bot *);
 	char *(*get_login_room)(struct Bot *);
@@ -19,7 +18,6 @@ struct BotApi {
 	void (*on_player_move)(struct Bot *, struct Player *);
 	void (*on_player_death)(struct Bot *, struct Player *);
 	void (*on_chat)(struct Bot *, struct Player *, char *);
-	void (*on_tick)(struct Bot *, uint32_t);
 };
 
 void init_bot_api(int);

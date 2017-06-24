@@ -8,10 +8,9 @@
 #include "player.h"
 #include "room.h"
 
-#define TICK_INTERVAL 500
-
 struct Bot {
 	bool running;
+	void *api_data;
 	struct Connection *main_conn;
 	struct Connection *game_conn;
 	struct BotApi *api;
