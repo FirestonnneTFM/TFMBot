@@ -187,8 +187,20 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		uint16_t old_ccc = ByteStream_read_u16(b);
 		switch (old_ccc) {
 		case 0x0809: {
-			// info on who is in the room
-			// TODO, keep a list of every player in the room
+			// list of players in the room
+			bool flag = true;
+			while (flag) {
+				struct Player *player = Player_new();
+				Player_from_old_protocol(player, b);
+				Room_add_player(self->room, player);
+				flag = false;
+				while (b->position < b->count) {
+					if (ByteStream_read_byte(b) == 0x01) {
+						flag = true;
+						break;
+					}
+				}
+			}
 			break;
 		}
 		case 0x0808: {
@@ -204,10 +216,19 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		}
 		case 0x0807: {
 			// gets sent when somebody leaves the room
+			uint32_t id = 0;
+			if (ByteStream_read_byte(b) != 0x01)
+				break;
+			byte digit;
+			while ((digit = ByteStream_read_byte(b)) != 0x01) {
+				id *= 10;
+				id += digit - '0';
+			}
+			Room_dispose_player(self->room, id);
 			break;
 		}
 		default:
-			printf("OLD PROTOCOL: %04x\n", old_ccc);
+			printf("OLD PROTOCOL  %04x : ", old_ccc);
 			ByteStream_print(b, 6);
 		}
 		break;

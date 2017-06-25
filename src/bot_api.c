@@ -20,11 +20,17 @@ struct BotApi *get_registered_api(int which)
 	return Bot_Api_List[which];
 }
 
-struct BotApi *BotApi_new(const char *name)
+struct BotApi *BotApi_new(char *name)
 {
 	struct BotApi *self = (struct BotApi*)calloc(1, sizeof(struct BotApi));
 	self->name = name;
 	return self;
+}
+
+void BotApi_dispose(struct BotApi *self)
+{
+	free(self->name);
+	free(self);
 }
 
 void BotApi_register(struct BotApi *self)

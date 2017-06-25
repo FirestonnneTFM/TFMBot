@@ -7,7 +7,7 @@
 struct Bot;
 
 struct BotApi {
-	const char *name;
+	char *name;
 	char *(*get_username)(struct Bot *);
 	char *(*get_password)(struct Bot *);
 	char *(*get_login_room)(struct Bot *);
@@ -22,7 +22,8 @@ struct BotApi {
 
 void init_bot_api(int);
 struct BotApi *get_registered_api(int);
-struct BotApi *BotApi_new(const char *);
+struct BotApi *BotApi_new(char *);
+void BotApi_dispose(struct BotApi *);
 void BotApi_register(struct BotApi *);
 
 #endif
