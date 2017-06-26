@@ -9,7 +9,7 @@ have to obtain these numbers yourself.
 ```
 
 In this example, the 20 byte key is:
-```29 30 3d 18 0c 2a 18 12 09 02 45 53 77 7b 77 6e 67 42 5a 7c```
+`29 30 3d 18 0c 2a 18 12 09 02 45 53 77 7b 77 6e 67 42 5a 7c`
 
 The login key is: `0x00121d15`
 

@@ -18,6 +18,11 @@ struct Bot {
 	struct Room *room;
 };
 
+extern volatile int num_bots_running;
+extern char *override_username;
+extern char *override_password;
+extern char *override_roomname;
+
 struct Bot *Bot_new(int);
 void Bot_dispose(struct Bot *);
 void Bot_start(struct Bot *);

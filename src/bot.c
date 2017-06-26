@@ -8,6 +8,11 @@
 //#define HOST "127.0.0.1"
 #define PORT 5555
 
+volatile int num_bots_running = 0;
+char *override_username = NULL;
+char *override_password = NULL;
+char *override_roomname = NULL;
+
 static bool heartbeat_task(void *ptr)
 {
 	struct Bot *self = (struct Bot*)ptr;
@@ -19,7 +24,7 @@ static bool heartbeat_task(void *ptr)
 	Connection_send(self->main_conn, b);
 	Connection_send(self->game_conn, b);
 	ByteStream_dispose(b);
-	return true;
+	return self->running;
 }
 
 struct Bot *Bot_new(int which_api)
@@ -40,6 +45,7 @@ void Bot_dispose(struct Bot *self)
 	Connection_dispose(self->main_conn);
 	Connection_dispose(self->game_conn);
 	free(self);
+	num_bots_running --;
 }
 
 void Bot_send_player_coords(struct Bot *self, struct Player *player)
@@ -91,21 +97,29 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		ByteStream_dispose(b);
 
 		char *username;
-		if (self->api->get_username == NULL)
-			username = "Souris";
-		else
+		if (override_username)
+			username = override_username;
+		else if (self->api->get_username)
 			username = self->api->get_username(self);
+		else
+			username = "Souris";
+		
 		char *password;
-		if (self->api->get_password == NULL)
-			password = NULL;
-		else
+		if (override_password)
+			password = override_password;
+		else if (self->api->get_password)
 			password = self->api->get_password(self);
-		char *login_room;
-		if (self->api->get_login_room == NULL)
-			login_room = "village gogogo";
 		else
+			password = NULL;
+		
+		char *login_room;
+		if (override_roomname)
+			login_room = override_roomname;
+		else if (self->api->get_login_room)
 			login_room = self->api->get_login_room(self);
-
+		else
+			login_room = "village gogogo";
+		
 		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x1A08);
 		ByteStream_write_str(b, username);
@@ -296,6 +310,7 @@ static bool Bot_check_conn(struct Bot *self, struct Connection *conn)
 void Bot_start(struct Bot *self)
 {
 	Connection_open(self->main_conn, HOST, PORT);
+	num_bots_running ++;
 	// handshake packet
 	struct ByteStream *b = ByteStream_new();
 	ByteStream_write_u16(b, 0x1C01);

@@ -5,7 +5,6 @@
 
 #define FOLLOW_USERNAME "*Ring"
 static struct Player *target = NULL;
-static int this_bot_counter = 0;
 
 static void on_player_join(struct Bot *self, struct Player *player)
 {
@@ -53,12 +52,11 @@ static bool send_coords(void *ptr)
 
 static void on_connect(struct Bot *self)
 {
-	printf("Connected with name: %s\n", self->player->name);
 	self->player->x = 0x1921;
 	self->player->y = 0x0A0C;
 	self->api_data = (int*)malloc(sizeof(int));
-	*((int*)self->api_data) = this_bot_counter;
-	this_bot_counter++;
+	*((int*)self->api_data) = num_bots_running;
+	printf("[%d] Connected with name: %s\n", num_bots_running, self->player->name);
 	Scheduler_add(Main_Scheduler, Task_new(3000, send_coords, self));
 }
 
