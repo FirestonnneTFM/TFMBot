@@ -60,6 +60,11 @@ static void on_connect(struct Bot *self)
 	Scheduler_add(Main_Scheduler, Task_new(3000, send_coords, self));
 }
 
+static void on_dispose(struct Bot *self)
+{
+	free(self->api_data);
+}
+
 static char *get_login_room(struct Bot *self)
 {
 	UNUSED(self);
@@ -80,5 +85,6 @@ void register_apibot_follow(void)
 	api->get_login_room = get_login_room;
 	api->on_player_join = on_player_join;
 	api->on_player_move = on_player_move;
+	api->on_dispose = on_dispose;
 	BotApi_register(api);
 }

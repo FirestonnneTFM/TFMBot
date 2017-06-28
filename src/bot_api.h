@@ -17,7 +17,8 @@ struct BotApi {
 	void (*on_player_join)(struct Bot *, struct Player *);
 	void (*on_player_move)(struct Bot *, struct Player *);
 	void (*on_player_death)(struct Bot *, struct Player *);
-	void (*on_chat)(struct Bot *, struct Player *, char *);
+	void (*on_player_chat)(struct Bot *, struct Player *, char *);
+	void (*on_dispose)(struct Bot *);
 };
 
 void init_bot_api(int);

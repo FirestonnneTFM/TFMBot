@@ -18,7 +18,7 @@ static char *asm_name = NULL;
 
 static void print_usage(void)
 {
-	printf("Usage : %s -a <which bot> -n <how many> [other flags]\n", asm_name);
+	printf("Usage : %s -a <which bot> [other flags]\n", asm_name);
 	puts("FLAGS");
 	puts("-a   Api number: the number of the registered bot api to use");
 	puts("-n   Bot number: how many bots to connect");
@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 	if (argc == 1)
 		print_usage();
 	int api_number = -1;
-	int bots_to_create = -1;
+	int bots_to_create = 1;
 	bool arg_a_flag = false;
 	bool arg_n_flag = false;
 	bool arg_u_flag = false;
@@ -76,12 +76,10 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (api_number < 0 || bots_to_create < 0) {
-		puts("No api number and/or bot number given");
+	if (api_number < 0) {
+		puts("No api number given");
 		print_usage();
 	}
-
-	return 0;
 
 	Main_Scheduler = Scheduler_new();
 	init_keys();

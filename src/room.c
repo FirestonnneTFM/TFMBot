@@ -28,3 +28,13 @@ void Room_dispose_player(struct Room *self, uint32_t player_id)
 		}
 	}
 }
+
+struct Player *Room_get_player(struct Room *self, uint32_t player_id)
+{
+	struct Player *i;
+	for (i = self->players; i != NULL; i = i->next) {
+		if (i->id == player_id)
+			return i;
+	}
+	return NULL;
+}

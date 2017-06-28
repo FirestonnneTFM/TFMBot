@@ -44,6 +44,8 @@ void Bot_dispose(struct Bot *self)
 {
 	Connection_dispose(self->main_conn);
 	Connection_dispose(self->game_conn);
+	if (self->api->on_dispose)
+		self->api->on_dispose(self);
 	free(self);
 	num_bots_running --;
 }
@@ -221,7 +223,9 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			// new player joins rooms
 			struct Player *player = Player_new();
 			Player_from_old_protocol(player, b);
-			self->api->on_player_join(self, player);
+			Room_add_player(self->room, player);
+			if (self->api->on_player_join)
+				self->api->on_player_join(self, player);
 			break;
 		}
 		case 0x0805: {
@@ -248,10 +252,12 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		break;
 	}
 	case 0x0404: {
+		// player movement / location
 		if (self->api->on_player_move == NULL)
 			break;
-		struct Player *player = Player_new();
-		player->id = ByteStream_read_u32(b);
+		struct Player *player = Room_get_player(self->room, ByteStream_read_u32(b));
+		if (player == NULL)
+			break;
 		player->round_num = ByteStream_read_u32(b);
 		player->key_right = ByteStream_read_byte(b);
 		player->key_left = ByteStream_read_byte(b);
@@ -262,6 +268,22 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		player->jumping = ByteStream_read_byte(b);
 		player->animation_frame = ByteStream_read_byte(b);
 		self->api->on_player_move(self, player);
+		break;
+	}
+	case 0x0606: {
+		// chat message
+		if (self->api->on_player_chat == NULL)
+			break;
+		struct Player *player = Room_get_player(self->room, ByteStream_read_u32(b));
+		if (player == NULL)
+			break;
+		// this string is the mouse name, but we disregard since we
+		// have the id
+		b->position += ByteStream_read_u16(b);
+		// byte identifies community
+		ByteStream_read_byte(b);
+		char *message = ByteStream_read_str(b);
+		self->api->on_player_chat(self, player, message);
 		break;
 	}
 	case 0x1404:
@@ -277,9 +299,11 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 	case 0x071E:
 		// who cares
 		break;
-		//default:
-		//printf("%04x ", ccc);
-		//ByteStream_print(b, 2);
+		/*
+	default:
+		printf("%04x ", ccc);
+		ByteStream_print(b, 2);
+		*/
 	}
 }
 
