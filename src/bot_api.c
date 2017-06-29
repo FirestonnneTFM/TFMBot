@@ -40,6 +40,6 @@ void BotApi_register(struct BotApi *self)
 	if (self->name == NULL)
 		fatal("Bot api must declare a name");
 	Bot_Api_List[Bot_Api_Ptr] = self;
+	printf("Registered module [%d] `%s`\n", Bot_Api_Ptr, self->name);
 	Bot_Api_Ptr ++;
-	printf("Registered module `%s`\n", self->name);
 }

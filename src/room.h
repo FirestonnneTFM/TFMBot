@@ -14,7 +14,7 @@ struct Room {
 };
 
 #define Room_new()((struct Room*)calloc(1, sizeof(struct Room)))
-void Room_add_player(struct Room *, struct Player *);
+bool Room_add_player(struct Room *, struct Player *);
 void Room_dispose_player(struct Room *, uint32_t);
 struct Player *Room_get_player(struct Room *, uint32_t);
 

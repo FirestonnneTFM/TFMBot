@@ -1,6 +1,6 @@
 #include "room.h"
 
-void Room_add_player(struct Room *self, struct Player *player)
+bool Room_add_player(struct Room *self, struct Player *player)
 {
 	// check for duplicates in the player list
 	struct Player *i;
@@ -8,12 +8,13 @@ void Room_add_player(struct Room *self, struct Player *player)
 		if (player->id == i->id) {
 			if (player != i)
 				Player_dispose(player);
-			return;
+			return false;
 		}
 	}
 	// Add the player to the linked list
 	player->next = self->players;
 	self->players = player;
+	return true;
 }
 
 void Room_dispose_player(struct Room *self, uint32_t player_id)

@@ -15,10 +15,12 @@ void Player_dispose(struct Player *self)
 void Player_from_old_protocol(struct Player *self, struct ByteStream *b)
 {
 	if (ByteStream_read_byte(b) != 0x01)
-		return;
+		fatal("Cannot read player from old protocol packet");
 	int start = b->position;
 	int i;
 	int len = 0;
+	// abcdef#
+	// 123456
 	while (ByteStream_read_byte(b) != '#')
 		len ++;
 	free(self->name);

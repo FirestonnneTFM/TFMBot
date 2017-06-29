@@ -3,8 +3,11 @@
 #include <string.h>
 #include "scheduler.h"
 
+//#define FOLLOW_USERNAME "Liar_2349892"
 #define FOLLOW_USERNAME "*Ring"
+
 static struct Player *target = NULL;
+#define api_data()(*((int*)self->api_data))
 
 static void on_player_join(struct Bot *self, struct Player *player)
 {
@@ -36,16 +39,16 @@ static void on_player_move(struct Bot *self, struct Player *player)
 		t->bot = self;
 		t->player = Player_new();
 		Player_copy(t->player, player);
-		Scheduler_add(Main_Scheduler, Task_new(((int*)self->api_data)[0] * 100,
+		Scheduler_add(Main_Scheduler, Task_new(api_data() * 100,
 			send_target_coords, t));
 	}
 }
 
 static bool send_coords(void *ptr)
 {
-	struct Bot *self = (struct Bot*)ptr;
 	if (target)
 		return false;
+	struct Bot *self = (struct Bot*)ptr;
 	Bot_send_player_coords(self, self->player);
 	return true;
 }
@@ -55,7 +58,7 @@ static void on_connect(struct Bot *self)
 	self->player->x = 0x1921;
 	self->player->y = 0x0A0C;
 	self->api_data = (int*)malloc(sizeof(int));
-	*((int*)self->api_data) = num_bots_running;
+	api_data() = num_bots_running;
 	printf("[%d] Connected with name: %s\n", num_bots_running, self->player->name);
 	Scheduler_add(Main_Scheduler, Task_new(3000, send_coords, self));
 }

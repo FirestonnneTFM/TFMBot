@@ -46,6 +46,7 @@ void Bot_dispose(struct Bot *self)
 	Connection_dispose(self->game_conn);
 	if (self->api->on_dispose)
 		self->api->on_dispose(self);
+	free(self->api);
 	free(self);
 	num_bots_running --;
 }
@@ -212,6 +213,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 				flag = false;
 				while (b->position < b->count) {
 					if (ByteStream_read_byte(b) == 0x01) {
+						b->position--;
 						flag = true;
 						break;
 					}
@@ -223,8 +225,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			// new player joins rooms
 			struct Player *player = Player_new();
 			Player_from_old_protocol(player, b);
-			Room_add_player(self->room, player);
-			if (self->api->on_player_join)
+			if (Room_add_player(self->room, player) && self->api->on_player_join)
 				self->api->on_player_join(self, player);
 			break;
 		}
