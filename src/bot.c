@@ -208,7 +208,10 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			bool flag = true;
 			while (flag) {
 				struct Player *player = Player_new();
-				Player_from_old_protocol(player, b);
+				if (! Player_from_old_protocol(player, b)) {
+					free(player);
+					break;
+				}
 				Room_add_player(self->room, player);
 				flag = false;
 				while (b->position < b->count) {
@@ -246,6 +249,26 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			Room_dispose_player(self->room, id);
 			break;
 		}
+		case 0x1a12: {
+			// ban message :(
+			if (ByteStream_read_byte(b) != 0x01)
+				break;
+			float time = 0.0f;
+			byte digit;
+			while ((digit = ByteStream_read_byte(b)) != 0x01) {
+				time *= 10;
+				time += digit - '0';
+			}
+			time /= 3600000.0;
+			int len = b->count - b->position;
+			char *msg = (char*)malloc(sizeof(char) * (len + 1));
+			msg[len] = '\0';
+			int i;
+			for (i = 0; i < len; i++)
+				msg[i] = b->array[b->position + i];
+			printf("Banned %f hours : %s\n", time, msg);
+			break;
+		}
 		default:
 			printf("OLD PROTOCOL  %04x : ", old_ccc);
 			ByteStream_print(b, 6);
@@ -256,7 +279,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		// player movement / location
 		if (self->api->on_player_move == NULL)
 			break;
-		struct Player *player = Room_get_player(self->room, ByteStream_read_u32(b));
+		struct Player *player = Room_get_player_id(self->room, ByteStream_read_u32(b));
 		if (player == NULL)
 			break;
 		player->round_num = ByteStream_read_u32(b);
@@ -275,7 +298,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		// chat message
 		if (self->api->on_player_chat == NULL)
 			break;
-		struct Player *player = Room_get_player(self->room, ByteStream_read_u32(b));
+		struct Player *player = Room_get_player_id(self->room, ByteStream_read_u32(b));
 		if (player == NULL)
 			break;
 		// this string is the mouse name, but we disregard since we

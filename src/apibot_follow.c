@@ -3,7 +3,8 @@
 #include <string.h>
 #include "scheduler.h"
 
-#define COMMANDER_USERNAME "Liar_2349892"
+// this should probably be in a config file or something
+#define COMMANDER_USERNAME "Liar_roodafs"
 
 static struct Player *target = NULL;
 static struct Player *commander = NULL;
@@ -27,7 +28,10 @@ static void on_player_chat(struct Bot *self, struct Player *player, char *msg)
 	if (msg[1] != 'o' || msg[2] != 'n' || msg[3] != ' ')
 		return;
 	char *ptr = msg + 4;
-	target = Room_get_player_name(self->room, ptr);
+	if (strlen(ptr) < 3)
+		target = Room_get_player_name(self->room, COMMANDER_USERNAME);
+	else
+		target = Room_get_player_name(self->room, ptr);
 	if (target)
 		printf("Target set to : %s\n", ptr);
 }

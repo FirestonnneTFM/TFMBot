@@ -12,17 +12,19 @@ void Player_dispose(struct Player *self)
 	free(self);
 }
 
-void Player_from_old_protocol(struct Player *self, struct ByteStream *b)
+bool Player_from_old_protocol(struct Player *self, struct ByteStream *b)
 {
 	if (ByteStream_read_byte(b) != 0x01)
-		fatal("Cannot read player from old protocol packet");
+		return false;
 	int start = b->position;
 	int i;
 	int len = 0;
-	// abcdef#
-	// 123456
-	while (ByteStream_read_byte(b) != '#')
+	
+	while (ByteStream_read_byte(b) != '#') {
+		if (b->position >= b->count)
+			return false;
 		len ++;
+	}
 	free(self->name);
 	self->name = (char*)malloc(sizeof(char) * (len + 1));
 	self->name[len] = '\0';
@@ -35,6 +37,7 @@ void Player_from_old_protocol(struct Player *self, struct ByteStream *b)
 		self->id *= 10;
 		self->id += digit - '0';
 	}
+	return true;
 }
 
 void Player_copy(struct Player *a, struct Player *b)

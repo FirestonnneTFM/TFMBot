@@ -21,7 +21,7 @@ struct Player {
 };
 
 struct Player *Player_new(void);
-void Player_from_old_protocol(struct Player *, struct ByteStream *);
+bool Player_from_old_protocol(struct Player *, struct ByteStream *);
 void Player_copy(struct Player *, struct Player *);
 void Player_dispose(struct Player *);
 
