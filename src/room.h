@@ -17,5 +17,6 @@ struct Room {
 bool Room_add_player(struct Room *, struct Player *);
 void Room_dispose_player(struct Room *, uint32_t);
 struct Player *Room_get_player(struct Room *, uint32_t);
+struct Player *Room_get_player_name(struct Room *, char *);
 
 #endif

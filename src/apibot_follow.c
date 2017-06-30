@@ -3,19 +3,33 @@
 #include <string.h>
 #include "scheduler.h"
 
-//#define FOLLOW_USERNAME "Liar_2349892"
-#define FOLLOW_USERNAME "*Ring"
+#define COMMANDER_USERNAME "Liar_2349892"
 
 static struct Player *target = NULL;
+static struct Player *commander = NULL;
 #define api_data()(*((int*)self->api_data))
 
 static void on_player_join(struct Bot *self, struct Player *player)
 {
 	UNUSED(self);
-	if (strcmp(player->name, FOLLOW_USERNAME) == 0) {
-		target = player;
-		printf("Target set to : %s\n", FOLLOW_USERNAME);
+	if (strcmp(player->name, COMMANDER_USERNAME) == 0) {
+		commander = player;
+		printf("Commander set to : %s\n", COMMANDER_USERNAME);
 	}
+}
+
+static void on_player_chat(struct Bot *self, struct Player *player, char *msg)
+{
+	if (commander && player->id != commander->id)
+		return;
+	if (msg[0] != '~' || strlen(msg) < 5)
+		return;
+	if (msg[1] != 'o' || msg[2] != 'n' || msg[3] != ' ')
+		return;
+	char *ptr = msg + 4;
+	target = Room_get_player_name(self->room, ptr);
+	if (target)
+		printf("Target set to : %s\n", ptr);
 }
 
 struct tuple {
@@ -89,5 +103,6 @@ void register_apibot_follow(void)
 	api->on_player_join = on_player_join;
 	api->on_player_move = on_player_move;
 	api->on_dispose = on_dispose;
+	api->on_player_chat = on_player_chat;
 	BotApi_register(api);
 }
