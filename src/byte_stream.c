@@ -1,6 +1,5 @@
 #include "byte_stream.h"
-#include "key_manager.h"
-#include "btea.h"
+#include "crypto.h"
 #include <string.h>
 #include <stdint.h>
 
@@ -191,7 +190,7 @@ void ByteStream_xor_cipher(struct ByteStream *self, int k)
 	// start at 2
 	int i;
 	for (i = 2; i < self->count; i++, k++) {
-		self->array[i] ^= Msg_Key[k % 20];
+		self->array[i] ^= Key_Manager->msg_key[k % 20];
 	}
 }
 

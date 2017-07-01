@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <sys/ioctl.h>
 #include "bot.h"
-#include "key_manager.h"
+#include "crypto.h"
 #include "scheduler.h"
 
 #define HOST "164.132.202.12"
@@ -163,7 +163,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		ByteStream_write_str(b, password);
 		ByteStream_write_str(b, "app:/TransformiceAIR.swf/[[DYNAMIC]]/2/[[DYNAMIC]]/4");
 		ByteStream_write_str(b, login_room);
-		ByteStream_write_u32(b, Login_Key ^ login_xor);
+		ByteStream_write_u32(b, Key_Manager->login_key ^ login_xor);
 		ByteStream_block_cipher(b);
 		ByteStream_write_byte(b, 0);
 		Connection_send(conn, b);
@@ -417,8 +417,8 @@ void Bot_start(struct Bot *self)
 	// handshake packet
 	struct ByteStream *b = ByteStream_new();
 	ByteStream_write_u16(b, 0x1C01);
-	ByteStream_write_u16(b, Handshake_Number);
-	ByteStream_write_str(b, Handshake_String);
+	ByteStream_write_u16(b, Key_Manager->handshake_number);
+	ByteStream_write_str(b, Key_Manager->handshake_string);
 	ByteStream_write_str(b, "Desktop");
 	ByteStream_write_str(b, "-");
 	ByteStream_write_u32(b, 0x00001FBD);

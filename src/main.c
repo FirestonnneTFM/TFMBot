@@ -1,6 +1,6 @@
 #include <pthread.h>
 #include "bot.h"
-#include "key_manager.h"
+#include "crypto.h"
 #include "scheduler.h"
 #include "apibot_afk.h"
 #include "apibot_follow.h"
@@ -18,16 +18,73 @@ static char *asm_name = NULL;
 
 static void print_usage(void)
 {
-	printf("Usage : %s -a <which bot> [other flags]\n", asm_name);
+	printf("Bot usage : %s -a <which bot> [other flags]\n", asm_name);
 	puts("FLAGS");
 	puts("-a   Api number: the number of the registered bot api to use");
 	puts("-n   Bot number: how many bots to connect");
 	puts("-u   Username to use: overwrites username function in api");
-	puts("-p   Password to use: overwrites password function in api");
+	puts("-p   Hashed assword to use: overwrites password function in api");
+	puts("     Use the password-hash utility to generate a hashed password");
 	puts("-r   Room to join: overwrites room name function in api");
 	puts("-x   Extended arg: passes this argument to the bot api");
 	puts("     What it means (if anything) depends on which api you use");
+	putchar('\n');
+	printf("Utililty usage : %s --<util flag>\n", asm_name);
+	puts("UTILITY FLAGS");
+	puts("--help            Display this help");
+	puts("--password-hash   Prints a Transformice-compatible password from");
+	puts("                  plaintext provided on stdin");
+	puts("--print-keys      Prints the keys found in the keys.bin file (if found)");
+	puts("--hash-key        Prints a hashed key from the string on stdin");
+	putchar('\n');
 	exit(0);
+}
+
+static void print_key_byte(byte *arr)
+{
+	int i;
+	for (i = 0; i < 20; i++) {
+		printf("%02x ", arr[i]);
+	}
+	putchar('\n');
+}
+
+static void print_usage_prompt(void)
+{
+	printf("For usage, use %s --help\n", asm_name);
+	exit(-1);
+}
+
+static void util_mode(char *arg)
+{
+	if (strcmp(arg, "help") == 0) {
+		print_usage();
+	} else if (strcmp(arg, "password-hash") == 0) {
+		fatal("Unimplemented");
+	} else if (strcmp(arg, "print-keys") == 0) {
+		init_keys();
+		printf("Hash key : ");
+		print_key_byte(Key_Manager->hash_key);
+		printf("Login Key : %08x\n", Key_Manager->login_key);
+		printf("Handshake Number : %04x\n", Key_Manager->handshake_number);
+		printf("Handshake String : %s\n", Key_Manager->handshake_string);
+	} else if (strcmp(arg, "hash-key") == 0) {
+		uint32_t buf[20];
+		char str[200];
+		fgets(str, 190, stdin);
+		djb_hash(buf, str, strlen(str) - 1);
+		int i;
+		for (i = 0; i < 20; i++) {
+			printf("%08x ", buf[i]);
+			if (i % 5 == 4)
+				putchar('\n');
+		}
+		putchar('\n');
+		
+	} else {
+		printf("Unknown flag --%s\n", arg);
+		print_usage_prompt();
+	}
 }
 
 int main(int argc, char **argv)
@@ -46,6 +103,10 @@ int main(int argc, char **argv)
 	int i;
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] == '-') {
+			if (argv[i][1] == '-') {
+				util_mode(argv[i] + 2);
+				return 0;
+			}
 			int check = 0;
 			check += arg_a_flag = argv[i][1] == 'a';
 			check += arg_n_flag = argv[i][1] == 'n';
@@ -55,7 +116,7 @@ int main(int argc, char **argv)
 			check += arg_x_flag = argv[i][1] == 'x';
 			if (check == 0) {
 				printf("Unknown switch `%s`\n", argv[i]);
-				print_usage();
+				print_usage_prompt();
 			}
 		} else {
 			if (arg_a_flag) {
@@ -78,14 +139,14 @@ int main(int argc, char **argv)
 				arg_x_flag = false;
 			} else {
 				printf("unexpected value `%s`\n", argv[i]);
-				print_usage();
+				print_usage_prompt();
 			}
 		}
 	}
 
 	if (api_number < 0) {
 		puts("No api number given");
-		print_usage();
+		print_usage_prompt();
 	}
 
 	Main_Scheduler = Scheduler_new();
