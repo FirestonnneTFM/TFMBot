@@ -25,6 +25,8 @@ static void print_usage(void)
 	puts("-u   Username to use: overwrites username function in api");
 	puts("-p   Password to use: overwrites password function in api");
 	puts("-r   Room to join: overwrites room name function in api");
+	puts("-x   Extended arg: passes this argument to the bot api");
+	puts("     What it means (if anything) depends on which api you use");
 	exit(0);
 }
 
@@ -40,6 +42,7 @@ int main(int argc, char **argv)
 	bool arg_u_flag = false;
 	bool arg_p_flag = false;
 	bool arg_r_flag = false;
+	bool arg_x_flag = false;
 	int i;
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -49,6 +52,7 @@ int main(int argc, char **argv)
 			check += arg_u_flag = argv[i][1] == 'u';
 			check += arg_p_flag = argv[i][1] == 'p';
 			check += arg_r_flag = argv[i][1] == 'r';
+			check += arg_x_flag = argv[i][1] == 'x';
 			if (check == 0) {
 				printf("Unknown switch `%s`\n", argv[i]);
 				print_usage();
@@ -69,6 +73,9 @@ int main(int argc, char **argv)
 			} else if (arg_r_flag) {
 				override_roomname = argv[i];
 				arg_r_flag = false;
+			} else if (arg_x_flag) {
+				x_arg = argv[i];
+				arg_x_flag = false;
 			} else {
 				printf("unexpected value `%s`\n", argv[i]);
 				print_usage();

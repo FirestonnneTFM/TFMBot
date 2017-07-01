@@ -3,8 +3,7 @@
 #include <string.h>
 #include "scheduler.h"
 
-// this should probably be in a config file or something
-#define COMMANDER_USERNAME "Liar_roodafs"
+#define COMMANDER_USERNAME()(x_arg)
 
 static struct Player *target = NULL;
 static struct Player *commander = NULL;
@@ -13,27 +12,34 @@ static struct Player *commander = NULL;
 static void on_player_join(struct Bot *self, struct Player *player)
 {
 	UNUSED(self);
-	if (strcmp(player->name, COMMANDER_USERNAME) == 0) {
+	if (strcmp(player->name, COMMANDER_USERNAME()) == 0) {
 		commander = player;
-		printf("Commander set to : %s\n", COMMANDER_USERNAME);
+		printf("Commander set to : %s\n", COMMANDER_USERNAME());
 	}
+}
+
+static inline bool cmd_check(char *raw, char a, char b)
+{
+	return raw[1] == a && raw[2] == b && raw[3] == ' ';
 }
 
 static void on_player_chat(struct Bot *self, struct Player *player, char *msg)
 {
-	if (commander && player->id != commander->id)
+	if (! commander)
 		return;
-	if (msg[0] != '~' || strlen(msg) < 5)
-		return;
-	if (msg[1] != 'o' || msg[2] != 'n' || msg[3] != ' ')
+	if (player->id != commander->id || msg[0] != '~' || strlen(msg) < 3)
 		return;
 	char *ptr = msg + 4;
-	if (strlen(ptr) < 3)
-		target = Room_get_player_name(self->room, COMMANDER_USERNAME);
-	else
-		target = Room_get_player_name(self->room, ptr);
-	if (target)
-		printf("Target set to : %s\n", ptr);
+	if (cmd_check(msg, 'o', 'n')) {
+		if (strlen(ptr) < 3)
+			target = Room_get_player_name(self->room, COMMANDER_USERNAME());
+		else
+			target = Room_get_player_name(self->room, ptr);
+		if (target)
+			printf("Target set to : %s\n", ptr);
+	} else if (cmd_check(msg, 't', 'o')) {
+		Bot_change_room(self, ptr);
+	}
 }
 
 struct tuple {
@@ -73,6 +79,8 @@ static bool send_coords(void *ptr)
 
 static void on_connect(struct Bot *self)
 {
+	if (x_arg == NULL)
+		fatal("Follow bot needs an x-arg for the commander");
 	self->player->x = 0x1921;
 	self->player->y = 0x0A0C;
 	self->api_data = (int*)malloc(sizeof(int));

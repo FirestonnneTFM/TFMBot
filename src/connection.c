@@ -25,7 +25,7 @@ static uint32_t pack_host(char *host)
 	return htonl(res);
 }
 
-static sock_t open_sock(char *host_name, int port)
+static inline sock_t open_sock(char *host_name, int port)
 {
 	sock_t sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0)
@@ -44,5 +44,7 @@ static sock_t open_sock(char *host_name, int port)
 
 void Connection_open(struct Connection *self, char *host, int port)
 {
+	if (self->sock)
+		close(self->sock);
 	self->sock = open_sock(host, port);
 }

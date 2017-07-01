@@ -9,6 +9,7 @@
 #define PORT 5555
 
 volatile int num_bots_running = 0;
+char *x_arg = NULL;
 char *override_username = NULL;
 char *override_password = NULL;
 char *override_roomname = NULL;
@@ -65,6 +66,39 @@ void Bot_send_player_coords(struct Bot *self, struct Player *player)
 	ByteStream_write_byte(b, player->jumping);
 	ByteStream_write_byte(b, player->animation_frame);
 	ByteStream_write_byte(b, 0);
+	Connection_send(self->game_conn, b);
+	ByteStream_dispose(b);
+}
+
+void Bot_change_room(struct Bot *self, char *room_name)
+{
+	// this doesn't work yet since connecting to a new room requires a
+	// new game sock to be opened, a bit of a pain
+	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u16(b, 0x0526);
+	ByteStream_write_byte(b, 0xff);
+	ByteStream_write_str(b, room_name);
+	ByteStream_write_byte(b, 0);
+	Connection_send(self->game_conn, b);
+	ByteStream_dispose(b);
+}
+
+void Bot_send_chat(struct Bot *self, char *msg)
+{
+	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u16(b, 0x0606);
+	ByteStream_write_str(b, msg);
+	ByteStream_xor_cipher(b, self->game_conn->k);
+	Connection_send(self->game_conn, b);
+	ByteStream_dispose(b);
+}
+
+void Bot_send_emote(struct Bot *self, byte emote)
+{
+	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u16(b, 0x0801);
+	ByteStream_write_byte(b, emote);
+	ByteStream_write_u32(b, 0xFFFFFFFF);
 	Connection_send(self->game_conn, b);
 	ByteStream_dispose(b);
 }
@@ -143,6 +177,10 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		break;
 	case 0x2C01: {
 		// information to connect to game sock
+		if (self->game_conn->sock) {
+			puts("attempting to change server");
+			break;
+		}
 		self->player->id = ByteStream_read_u32(b);
 		char *ip = ByteStream_read_str(b);
 		Connection_open(self->game_conn, ip, 5555);
@@ -159,7 +197,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		break;
 	}
 	case 0x2C16:
-		self->game_conn->k = ByteStream_read_byte(b);
+		conn->k = ByteStream_read_byte(b);
 		break;
 	case 0x1C32:
 		// this packet appears to contain a lot of garbage
@@ -294,6 +332,14 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		self->api->on_player_move(self, player);
 		break;
 	}
+	case 0x0409: {
+		// duck
+		/*
+		uint32_t player_id = ByteStream_read_u32(b);
+		byte ducking = ByteStream_read_byte(b);
+		*/
+		break;
+	}
 	case 0x0606: {
 		// chat message
 		if (self->api->on_player_chat == NULL)
@@ -310,6 +356,14 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		self->api->on_player_chat(self, player, message);
 		break;
 	}
+	case 0x0801: {
+		// emote
+		/*
+		uint32_t player_id = ByteSteam_read_u32(b);
+		byte emote_id = ByteStream_read_byte(b);
+		*/
+		break;
+	}
 	case 0x1404:
 	case 0x1009:
 	case 0x6406:
@@ -321,6 +375,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 	case 0x1a21:
 	case 0x1c02:
 	case 0x071E:
+	case 0x1c06:
 		// who cares
 		break;
 		/*
