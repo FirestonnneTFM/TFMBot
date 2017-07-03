@@ -140,7 +140,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			username = self->api->get_username(self);
 		else
 			username = "Souris";
-		
+
 		char *password;
 		if (override_password)
 			password = override_password;
@@ -148,7 +148,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			password = self->api->get_password(self);
 		else
 			password = NULL;
-		
+
 		char *login_room;
 		if (override_roomname)
 			login_room = override_roomname;
@@ -156,7 +156,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			login_room = self->api->get_login_room(self);
 		else
 			login_room = "village gogogo";
-		
+
 		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x1A08);
 		ByteStream_write_str(b, username);

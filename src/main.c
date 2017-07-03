@@ -21,7 +21,7 @@ static void print_usage(void)
 	printf("Bot usage : %s -a <which bot> [other flags]\n", asm_name);
 	puts("FLAGS");
 	puts("-a   Api number: the number of the registered bot api to use");
-	puts("-n   Bot number: how many bots to connect");
+	puts("-n   Bot number: how many bots to connect (default: 1)");
 	puts("-u   Username to use: overwrites username function in api");
 	puts("-p   Hashed assword to use: overwrites password function in api");
 	puts("     Use the password-hash utility to generate a hashed password");
@@ -51,7 +51,7 @@ static void print_key_byte(byte *arr)
 
 static void print_usage_prompt(void)
 {
-	printf("For usage, use %s --help\n", asm_name);
+	fprintf(stderr, "For usage, use %s --help\n", asm_name);
 	exit(-1);
 }
 
@@ -82,7 +82,7 @@ static void util_mode(char *arg)
 		putchar('\n');
 		
 	} else {
-		printf("Unknown flag --%s\n", arg);
+		fprintf(stderr, "Unknown flag --%s\n", arg);
 		print_usage_prompt();
 	}
 }
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 			check += arg_r_flag = argv[i][1] == 'r';
 			check += arg_x_flag = argv[i][1] == 'x';
 			if (check == 0) {
-				printf("Unknown switch `%s`\n", argv[i]);
+				fprintf(stderr, "Unknown switch `%s`\n", argv[i]);
 				print_usage_prompt();
 			}
 		} else {
@@ -138,14 +138,14 @@ int main(int argc, char **argv)
 				x_arg = argv[i];
 				arg_x_flag = false;
 			} else {
-				printf("unexpected value `%s`\n", argv[i]);
+				fprintf(stderr, "unexpected value `%s`\n", argv[i]);
 				print_usage_prompt();
 			}
 		}
 	}
 
 	if (api_number < 0) {
-		puts("No api number given");
+		fprintf(stderr, "No api number given\n");
 		print_usage_prompt();
 	}
 

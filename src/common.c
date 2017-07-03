@@ -4,9 +4,9 @@
 
 void fatal(char *msg)
 {
-	printf("Fatal: %s\n", msg);
+	fprintf(stderr, "Fatal: %s\n", msg);
 	if (errno) {
-		printf("errno(%d) = %s\n", errno, strerror(errno));
+		fprintf(stderr, "errno(%d); %s\n", errno, strerror(errno));
 		exit(errno);
 	} else {
 		exit(-1);
