@@ -40,18 +40,3 @@ bool Player_from_old_protocol(struct Player *self, struct ByteStream *b)
 	return true;
 }
 
-void Player_copy(struct Player *a, struct Player *b)
-{
-	a->id = b->id;
-	a->title = b->title;
-	a->x = b->x;
-	a->y = b->y;
-	a->acc_x = b->acc_x;
-	a->acc_y = b->acc_y;
-	a->key_right = b->key_right;
-	a->key_left = b->key_left;
-	a->jumping = b->jumping;
-	a->animation_frame = b->animation_frame;
-	a->round_num = b->round_num;
-	a->next = NULL;
-}

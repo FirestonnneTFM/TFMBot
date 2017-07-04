@@ -70,7 +70,14 @@ struct BotApi {
 	 */
 	void (*on_player_join)(struct Bot *, struct Player *);
 
-	// TODO: on_player_leave
+	/**
+	 * Event triggered when a player leaves the room. Said player is
+	 * passed as the argument, but note that immediately after that
+	 * pointer is freed, so if struct is needed, you should copy it to
+	 * new memory
+	 */
+
+	void (*on_player_leave)(struct Bot *, struct Player *);
 
 	/**
 	 * Event triggered when a player's coordinates and movement
@@ -79,7 +86,10 @@ struct BotApi {
 	 */
 	void (*on_player_move)(struct Bot *, struct Player *);
 
-	// TODO: on_player_duck
+	/**
+	 * Event triggered when a player crouches. Said player is passed
+	 */
+	void (*on_player_duck)(struct Bot *, struct Player *);
 
 	/**
 	 * Event triggered when a player dies; player passed as the
@@ -93,7 +103,12 @@ struct BotApi {
 	 */
 	void (*on_player_chat)(struct Bot *, struct Player *, char *);
 
-	// TODO: on_player_emote
+	/**
+	 * Event triggered when a player sends an emote, like dancing,
+	 * crying, or sleeping. The player is passed, along with the id of
+	 * the emote. Several #define's are made in bot.h for some emotes
+	 */
+	void (*on_player_emote)(struct Bot *, struct Player *, byte);
 
 	/**
 	 * Event triggered when the struct Bot is being freed, along with

@@ -69,10 +69,11 @@ static void util_mode(char *arg)
 		printf("Handshake Number : %04x\n", Key_Manager->handshake_number);
 		printf("Handshake String : %s\n", Key_Manager->handshake_string);
 	} else if (strcmp(arg, "hash-key") == 0) {
+		init_keys();
 		uint32_t buf[20];
 		char str[200];
 		fgets(str, 190, stdin);
-		djb_hash(buf, str, strlen(str) - 1);
+		djb_hash(buf, str, strlen(str));
 		int i;
 		for (i = 0; i < 20; i++) {
 			printf("%08x ", buf[i]);

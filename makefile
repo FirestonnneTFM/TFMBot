@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -std=gnu99 -Wall -Wextra -Wpedantic -Wshadow -Wcast-qual	\
 -Wstrict-prototypes -Wmissing-prototypes -Werror -O2
 TARGET = ./bin/remote
-LDLIBS = -lpthread
+LDLIBS = -lpthread -lz
 SOURCES = $(wildcard ./src/*.c)
 OBJECTS = $(SOURCES:.c=.o)
 

@@ -15,6 +15,7 @@ struct Player {
 	byte key_right;
 	byte key_left;
 	byte jumping;
+	byte ducking;
 	byte animation_frame;
 	uint32_t round_num;
 	struct Player *next;
@@ -22,7 +23,6 @@ struct Player {
 
 struct Player *Player_new(void);
 bool Player_from_old_protocol(struct Player *, struct ByteStream *);
-void Player_copy(struct Player *, struct Player *);
 void Player_dispose(struct Player *);
 
 #endif

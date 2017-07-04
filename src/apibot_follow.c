@@ -61,8 +61,8 @@ static void on_player_move(struct Bot *self, struct Player *player)
 	if (target && player->id == target->id) {
 		struct tuple *t = (struct tuple*)malloc(sizeof(struct tuple));
 		t->bot = self;
-		t->player = Player_new();
-		Player_copy(t->player, player);
+		t->player = (struct Player*)malloc(sizeof(struct Player));
+		memcpy(t->player, player, sizeof(struct Player));
 		Scheduler_add(Main_Scheduler, Task_new(api_data() * 100,
 			send_target_coords, t));
 	}

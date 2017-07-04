@@ -38,6 +38,7 @@ struct Bot *Bot_new(int which_api)
 	self->api = get_registered_api(which_api);
 	self->room = Room_new();
 	self->player = Player_new();
+	self->map = Map_new();
 	return self;
 }
 
@@ -48,6 +49,9 @@ void Bot_dispose(struct Bot *self)
 	if (self->api->on_dispose)
 		self->api->on_dispose(self);
 	free(self->api);
+	free(self->room);
+	free(self->player);
+	free(self->map);
 	free(self);
 	num_bots_running --;
 }
@@ -227,6 +231,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		// compressed?)
 		ByteStream_read_byte(b);
 		uint32_t compressed_map_len = ByteStream_read_u32(b);
+		Map_load(self->map, b->array + b->position, compressed_map_len);
 		b->position += compressed_map_len;
 		free(self->room->map_author);
 		self->room->map_author = ByteStream_read_str(b);
@@ -272,6 +277,17 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		}
 		case 0x0805: {
 			// gets sent when somebody dies
+			if (self->api->on_player_death == NULL)
+				break;
+			uint32_t id = 0;
+			if (ByteStream_read_byte(b) != 0x01)
+				break;
+			byte digit;
+			while ((digit = ByteStream_read_byte(b)) != 0x01) {
+				id *= 10;
+				id += digit - '0';
+			}
+			self->api->on_player_death(self, Room_get_player_id(self->room, id));
 			break;
 		}
 		case 0x0807: {
@@ -285,6 +301,11 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 				id += digit - '0';
 			}
 			Room_dispose_player(self->room, id);
+			break;
+		}
+		case 0x0815: {
+			// tells you who the shaman is
+			// 01 32 39 37 39 39 37 37 01 
 			break;
 		}
 		case 0x1a12: {
@@ -334,10 +355,13 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 	}
 	case 0x0409: {
 		// duck
-		/*
-		uint32_t player_id = ByteStream_read_u32(b);
-		byte ducking = ByteStream_read_byte(b);
-		*/
+		if (self->api->on_player_duck == NULL)
+			break;
+		struct Player *player = Room_get_player_id(self->room, ByteStream_read_u32(b));
+		if (player == NULL)
+			break;
+		player->ducking = ByteStream_read_byte(b);
+		self->api->on_player_duck(self, player);
 		break;
 	}
 	case 0x0606: {
@@ -358,10 +382,13 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 	}
 	case 0x0801: {
 		// emote
-		/*
-		uint32_t player_id = ByteSteam_read_u32(b);
+		if (self->api->on_player_emote == NULL)
+			break;
+		struct Player *player = Room_get_player_id(self->room, ByteStream_read_u32(b));
+		if (player == NULL)
+			break;
 		byte emote_id = ByteStream_read_byte(b);
-		*/
+		self->api->on_player_emote(self, player, emote_id);
 		break;
 	}
 	case 0x1404:

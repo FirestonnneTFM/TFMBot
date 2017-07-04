@@ -7,6 +7,7 @@
 #include "bot_api.h"
 #include "player.h"
 #include "room.h"
+#include "map.h"
 
 #define EMOTE_DANCE 0
 #define EMOTE_LAUGH 1
@@ -32,6 +33,7 @@ struct Bot {
 	struct BotApi *api;
 	struct Player *player;
 	struct Room *room;
+	struct Map *map;
 };
 
 extern volatile int num_bots_running;

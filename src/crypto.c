@@ -89,12 +89,12 @@ void btea(uint32_t *v, size_t n)
 	} while (--rounds);
 }
 
-const char salt[32] = { -9, 26, -90, -34, -113, 23, 118, -88, 3, -99, 50,
-	-72, -95, 86, -78, -87, 62, -99, -59, -35, -50, 86, -45, -73,-92,
-	5, 74, 13, 8, -80 };
-
 void password_hash(char buf, size_t len, FILE *f)
 {
+	static const char salt[32] = { -9, 26, -90, -34, -113, 23, 118, -88, 3, -99, 50,
+		-72, -95, 86, -78, -87, 62, -99, -59, -35, -50, 86, -45, -73,-92,
+		5, 74, 13, 8, -80 };
+	UNUSED(salt);
 	UNUSED(buf);
 	UNUSED(len);
 	UNUSED(f);
