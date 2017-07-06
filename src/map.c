@@ -35,5 +35,4 @@ void Map_load(struct Map *self, byte *buf, int len)
 	self->xml[self->xml_len] = '\0';
 	memcpy(self->xml, xml, self->xml_len);
 	free(xml);
-	puts(self->xml);
 }

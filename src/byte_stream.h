@@ -25,6 +25,7 @@ char *ByteStream_read_str(struct ByteStream *);
 void ByteStream_write_sock(struct ByteStream *, sock_t, byte);
 void ByteStream_read_sock(struct ByteStream *, sock_t);
 void ByteStream_print(struct ByteStream *, int);
+void ByteStream_print_ascii(struct ByteStream *, int);
 void ByteStream_xor_cipher(struct ByteStream *, int);
 void ByteStream_block_cipher(struct ByteStream *);
 

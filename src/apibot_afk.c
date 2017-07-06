@@ -18,7 +18,9 @@ static void on_player_chat(struct Bot *self, struct Player *player, char *messag
 static void on_player_death(struct Bot *self, struct Player *player)
 {
 	UNUSED(self);
-	printf("Player `%s` died", player->name);
+	if (x_arg)
+		Bot_send_command(self, x_arg);
+	printf("Player `%s` died\n", player->name);
 }
 
 static void on_player_join(struct Bot *self, struct Player *player)

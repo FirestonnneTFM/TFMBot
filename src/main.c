@@ -23,7 +23,8 @@ static void print_usage(void)
 	puts("-a   Api number: the number of the registered bot api to use");
 	puts("-n   Bot number: how many bots to connect (default: 1)");
 	puts("-u   Username to use: overwrites username function in api");
-	puts("-p   Hashed assword to use: overwrites password function in api");
+	puts("-p   File path to a hashed password to use: overwrites password function in api");
+	puts("     Note: this is a FILE, for security reasons the hashed password is not put as a direct arg");
 	puts("     Use the password-hash utility to generate a hashed password");
 	puts("-r   Room to join: overwrites room name function in api");
 	puts("-x   Extended arg: passes this argument to the bot api");
@@ -88,6 +89,24 @@ static void util_mode(char *arg)
 	}
 }
 
+static void password_from_file(void)
+{
+	FILE *pw_file = fopen(override_password, "r");
+	if (pw_file == NULL)
+		fatal("Password file cannot be opened");
+	char buf[200];
+	char c;
+	int i = 0;
+	while ((c = fgetc(pw_file)) != EOF && c != '\n') {
+		buf[i] = c;
+		i++;
+	}
+	fclose(pw_file);
+	override_password = (char*)malloc(sizeof(char) * (i + 1));
+	memcpy(override_password, buf, i);
+	override_password[i] = '\0';
+}
+
 int main(int argc, char **argv)
 {
 	asm_name = argv[0];
@@ -150,6 +169,9 @@ int main(int argc, char **argv)
 		print_usage_prompt();
 	}
 
+	if (override_password)
+		password_from_file();
+	
 	Main_Scheduler = Scheduler_new();
 	init_keys();
 	init_bot_api(2);

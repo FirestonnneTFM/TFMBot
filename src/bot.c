@@ -97,6 +97,16 @@ void Bot_send_chat(struct Bot *self, char *msg)
 	ByteStream_dispose(b);
 }
 
+void Bot_send_command(struct Bot *self, char *cmd)
+{
+	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u16(b, 0x061a);
+	ByteStream_write_str(b, cmd);
+	ByteStream_xor_cipher(b, self->main_conn->k);
+	Connection_send(self->main_conn, b);
+	ByteStream_dispose(b);
+}
+
 void Bot_send_emote(struct Bot *self, byte emote)
 {
 	struct ByteStream *b = ByteStream_new();
@@ -391,6 +401,18 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		self->api->on_player_emote(self, player, emote_id);
 		break;
 	}
+	case 0x1c05: {
+		// text sent from server, for example output of /mod
+		uint32_t len = ByteStream_read_u32(b);
+		if (*(b->array + b->position + len) == '\0')
+			puts((char*)b->array + b->position);
+		break;
+	}
+	case 0x0614: {
+		// result of /time
+		ByteStream_print_ascii(b, 5);
+		break;
+	}
 	case 0x1404:
 	case 0x1009:
 	case 0x6406:
@@ -405,11 +427,11 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 	case 0x1c06:
 		// who cares
 		break;
-		/*
+#ifdef PRINT_ALL_PACKETS
 	default:
 		printf("%04x ", ccc);
 		ByteStream_print(b, 2);
-		*/
+#endif
 	}
 }
 

@@ -184,12 +184,24 @@ void ByteStream_print(struct ByteStream *self, int i)
 	putchar('\n');
 }
 
+void ByteStream_print_ascii(struct ByteStream *self, int i)
+{
+	for (; i < self->count; i++) {
+		if (self->array[i] < 0x20)
+			putchar('.');
+		else
+			putchar(self->array[i]);
+	}
+	putchar('\n');
+}
+
 void ByteStream_xor_cipher(struct ByteStream *self, int k)
 {
 	// do not mess with the CCC prefix !
 	// start at 2
 	int i;
-	for (i = 2; i < self->count; i++, k++) {
+	for (i = 2; i < self->count; i++) {
+		k++;
 		self->array[i] ^= Key_Manager->msg_key[k % 20];
 	}
 }

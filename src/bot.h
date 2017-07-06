@@ -9,6 +9,8 @@
 #include "room.h"
 #include "map.h"
 
+//#define PRINT_ALL_PACKETS
+
 #define EMOTE_DANCE 0
 #define EMOTE_LAUGH 1
 #define EMOTE_CRY 2
@@ -48,6 +50,7 @@ void Bot_start(struct Bot *);
 void Bot_send_player_coords(struct Bot *, struct Player *);
 void Bot_change_room(struct Bot *, char *);
 void Bot_send_chat(struct Bot *, char *);
+void Bot_send_command(struct Bot *, char *);
 void Bot_send_emote(struct Bot *, byte);
 
 #endif
