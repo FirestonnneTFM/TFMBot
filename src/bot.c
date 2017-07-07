@@ -23,7 +23,7 @@ static bool heartbeat_task(void *ptr)
 	ByteStream_write_u16(b, 0x1A1A);
 	// send it to both connections
 	Connection_send(self->main_conn, b);
-	Connection_send(self->game_conn, b);
+	Connection_send(self->bulle_conn, b);
 	ByteStream_dispose(b);
 	return self->running;
 }
@@ -34,7 +34,7 @@ struct Bot *Bot_new(int which_api)
 	self->running = true;
 	self->api_data = NULL;
 	self->main_conn = Connection_new();
-	self->game_conn = Connection_new();
+	self->bulle_conn = Connection_new();
 	self->api = get_registered_api(which_api);
 	self->room = Room_new();
 	self->player = Player_new();
@@ -45,7 +45,7 @@ struct Bot *Bot_new(int which_api)
 void Bot_dispose(struct Bot *self)
 {
 	Connection_dispose(self->main_conn);
-	Connection_dispose(self->game_conn);
+	Connection_dispose(self->bulle_conn);
 	if (self->api->on_dispose)
 		self->api->on_dispose(self);
 	free(self->api);
@@ -70,7 +70,7 @@ void Bot_send_player_coords(struct Bot *self, struct Player *player)
 	ByteStream_write_byte(b, player->jumping);
 	ByteStream_write_byte(b, player->animation_frame);
 	ByteStream_write_byte(b, 0);
-	Connection_send(self->game_conn, b);
+	Connection_send(self->bulle_conn, b);
 	ByteStream_dispose(b);
 }
 
@@ -83,7 +83,7 @@ void Bot_change_room(struct Bot *self, char *room_name)
 	ByteStream_write_byte(b, 0xff);
 	ByteStream_write_str(b, room_name);
 	ByteStream_write_byte(b, 0);
-	Connection_send(self->game_conn, b);
+	Connection_send(self->bulle_conn, b);
 	ByteStream_dispose(b);
 }
 
@@ -92,8 +92,8 @@ void Bot_send_chat(struct Bot *self, char *msg)
 	struct ByteStream *b = ByteStream_new();
 	ByteStream_write_u16(b, 0x0606);
 	ByteStream_write_str(b, msg);
-	ByteStream_xor_cipher(b, self->game_conn->k);
-	Connection_send(self->game_conn, b);
+	ByteStream_xor_cipher(b, self->bulle_conn->k);
+	Connection_send(self->bulle_conn, b);
 	ByteStream_dispose(b);
 }
 
@@ -113,7 +113,7 @@ void Bot_send_emote(struct Bot *self, byte emote)
 	ByteStream_write_u16(b, 0x0801);
 	ByteStream_write_byte(b, emote);
 	ByteStream_write_u32(b, 0xFFFFFFFF);
-	Connection_send(self->game_conn, b);
+	Connection_send(self->bulle_conn, b);
 	ByteStream_dispose(b);
 }
 
@@ -191,13 +191,13 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		break;
 	case 0x2C01: {
 		// information to connect to game sock
-		if (self->game_conn->sock) {
+		if (self->bulle_conn->sock) {
 			puts("attempting to change server");
 			break;
 		}
 		self->player->id = ByteStream_read_u32(b);
 		char *ip = ByteStream_read_str(b);
-		Connection_open(self->game_conn, ip, 5555);
+		Connection_open(self->bulle_conn, ip, 5555);
 		free(ip);
 		if (self->api->on_connect) {
 			self->api->on_connect(self);
@@ -206,7 +206,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		b = ByteStream_new();
 		ByteStream_write_u16(b, 0x2C01);
 		ByteStream_write_u32(b, self->player->id);
-		Connection_send(self->game_conn, b);
+		Connection_send(self->bulle_conn, b);
 		ByteStream_dispose(b);
 		break;
 	}
@@ -484,7 +484,7 @@ void Bot_start(struct Bot *self)
 
 	while (self->running) {
 		Bot_check_conn(self, self->main_conn);
-		Bot_check_conn(self, self->game_conn);
+		Bot_check_conn(self, self->bulle_conn);
 		sleep_ms(1);
 	}
 }

@@ -31,7 +31,7 @@ struct Bot {
 	bool running;
 	void *api_data;
 	struct Connection *main_conn;
-	struct Connection *game_conn;
+	struct Connection *bulle_conn;
 	struct BotApi *api;
 	struct Player *player;
 	struct Room *room;

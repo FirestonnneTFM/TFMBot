@@ -4,23 +4,19 @@
 
 #define api_data()(*((bool*)self->api_data))
 
+static int num_of_usernames = 0;
+static char** list_of_usernames = NULL;
+
 static void on_dispose(struct Bot *self)
 {
 	free(self->api_data);
+	free(list_of_usernames);
 }
 
 static void on_player_chat(struct Bot *self, struct Player *player, char *message)
 {
 	UNUSED(self);
 	printf("[%s] %s\n", player->name, message);
-}
-
-static void on_player_death(struct Bot *self, struct Player *player)
-{
-	UNUSED(self);
-	if (x_arg)
-		Bot_send_command(self, x_arg);
-	printf("Player `%s` died\n", player->name);
 }
 
 static void on_player_join(struct Bot *self, struct Player *player)
@@ -70,11 +66,31 @@ static char *get_login_room(struct Bot *self)
 static char *get_username(struct Bot *self)
 {
 	UNUSED(self);
-	return "Sourisss";
+	if (num_bots_running >= num_of_usernames)
+		return "Sourisss";
+	else
+		return list_of_usernames[num_bots_running++];
 }
 
 void register_apibot_afk()
 {
+	if (x_arg) {
+		// read potential usernames from file
+		FILE *f = fopen(x_arg, "r");
+		if (f == NULL)
+			fatal("Username file: Could not open");
+		if (fscanf(f, "%d", &num_of_usernames) != 1)
+			fatal("Username file: need number of usernames");
+		list_of_usernames = (char**)malloc(sizeof(char*) * num_of_usernames);
+		int i;
+		// hope for no buffer overflow
+		for (i = 0; i < num_of_usernames; i++) {
+			list_of_usernames[i] = (char*)calloc(1, 16);
+			if (fscanf(f, "%s", list_of_usernames[i]) != 1)
+				fatal("Username file: not enough usernames provided");
+		}
+		fclose(f);
+	}
 	struct BotApi *api = BotApi_new("afk bot");
 	api->get_username = get_username;
 	api->get_login_room = get_login_room;
@@ -82,7 +98,6 @@ void register_apibot_afk()
 	api->on_room_join = on_room_join;
 	api->on_new_map = on_new_map;
 	api->on_player_join = on_player_join;
-	api->on_player_death = on_player_death;
 	api->on_player_chat = on_player_chat;
 	api->on_dispose = on_dispose;
 	BotApi_register(api);
