@@ -27,6 +27,7 @@ static void on_player_join(struct Bot *self, struct Player *player)
 
 static void on_room_join(struct Bot *self)
 {
+	Bot_send_command(self, "time");
 	printf("Joined room : %s\n", self->room->name);
 }
 
@@ -60,16 +61,24 @@ static void on_connect(struct Bot *self)
 static char *get_login_room(struct Bot *self)
 {
 	UNUSED(self);
-	return "village gogogo";
+	char *roomname = (char*)malloc(sizeof(char) * 16);
+	sprintf(roomname, "village ");
+	int i;
+	for (i = 8; i < 15; i++) {
+		roomname[i] = (rand() % 26) + 'a';
+	}
+	roomname[i] = '\0';
+	return roomname;
 }
 
 static char *get_username(struct Bot *self)
 {
 	UNUSED(self);
-	if (num_bots_running >= num_of_usernames)
-		return "Sourisss";
+	int index = num_bots_running - 1;
+	if (index >= num_of_usernames)
+		return NULL;
 	else
-		return list_of_usernames[num_bots_running++];
+		return list_of_usernames[index];
 }
 
 void register_apibot_afk()

@@ -5,6 +5,7 @@
 #include "apibot_afk.h"
 #include "apibot_follow.h"
 #include <string.h>
+#include <time.h>
 
 static void *run_bot(void *ptr)
 {
@@ -158,7 +159,7 @@ int main(int argc, char **argv)
 				x_arg = argv[i];
 				arg_x_flag = false;
 			} else {
-				fprintf(stderr, "unexpected value `%s`\n", argv[i]);
+				fprintf(stderr, "Unexpected value `%s`\n", argv[i]);
 				print_usage_prompt();
 			}
 		}
@@ -171,7 +172,8 @@ int main(int argc, char **argv)
 
 	if (override_password)
 		password_from_file();
-	
+
+	srand(time(NULL));
 	Main_Scheduler = Scheduler_new();
 	init_keys();
 	init_bot_api(2);
