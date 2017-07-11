@@ -14,6 +14,6 @@ void Connection_dispose(struct Connection *);
 void Connection_send(struct Connection *, struct ByteStream *);
 void Connection_open(struct Connection *, char *, int);
 sock_t open_sock(char *, int);
-void sock_read_byte(sock_t, byte *);
-void sock_block_read(sock_t, byte *, int);
+void sock_read_byte(sock_t, void *);
+void sock_block_read(sock_t, void *, int);
 #endif

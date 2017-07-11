@@ -202,23 +202,12 @@ int main(int argc, char **argv)
 	init_bot_api(2);
 	register_apibot_afk();
 	register_apibot_follow();
-	/**
-	//<REMOVE>
-	create_thread(run_control_panel, NULL);
-	while (true) {
-		sleep_ms(100);
-	}
-	//</REMOVE>
-	*/
 	bots_running = (struct Bot**)malloc(sizeof(struct Bot*) * bots_to_create);
 	for (i = 0; i < bots_to_create; i++) {
 		bots_running[i] = Bot_new(api_number);
 		create_thread(run_bot, bots_running[i]);
 		sleep_ms(3000);
 	}
-	/**
-	
-	*/
 	create_thread(run_control_panel, NULL);
 	while (true) {
 		Scheduler_tick(Main_Scheduler);

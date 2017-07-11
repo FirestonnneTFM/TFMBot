@@ -5,6 +5,7 @@
 
 struct ControlPanel {
 	sock_t sock;
+	int bot_index;
 };
 
 struct ControlPanel *ControlPanel_new(sock_t);

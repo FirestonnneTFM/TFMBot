@@ -51,7 +51,7 @@ void Connection_open(struct Connection *self, char *host, int port)
 		fatal("Could not connect");
 }
 
-void sock_read_byte(sock_t sock, byte *buf)
+void sock_read_byte(sock_t sock, void *buf)
 {
 	int n;
 	while ((n = read(sock, buf, 1)) != 1) {
@@ -63,8 +63,10 @@ void sock_read_byte(sock_t sock, byte *buf)
 	}
 }
 
-void sock_block_read(sock_t sock, byte *buf, int len)
+void sock_block_read(sock_t sock, void *buf, int len)
 {
+	if (len == 0)
+		return;
 	// pbuf exists to keep a pointer to the start of the fill area
 	// pos is a relative count of this
 	byte *pbuf = buf;

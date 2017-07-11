@@ -10,8 +10,26 @@ def block_recv(sock, n):
 
 def do_send(sock):
 	s = input('> ')
-	sock.send(len(s).to_bytes(2, byteorder='little'))
-	sock.send(bytes(s, 'utf-8'))
+	s_len = len(s)
+	if s_len < 1:
+		return False
+	cmd = None
+	msg = None
+	if s[0] == '/':
+		if s_len < 4:
+			return 'Command is too short to be valid'
+		elif s_len == 5:
+			msg = ''
+		else:
+			msg = s[5:]
+		cmd = s[1:4]
+	else:
+		cmd = 'say'
+		msg = s
+	sock.send(bytes(cmd, 'ascii'))
+	sock.send(len(msg).to_bytes(2, byteorder='little'))
+	sock.send(bytes(msg, 'ascii'))
+	return False
 
 def do_recv(sock):
 	data_len = int.from_bytes(block_recv(sock, 2), byteorder='little')
@@ -26,6 +44,9 @@ def main():
 	conn, addr = sock.accept()
 	print('Connected ' + addr[0] + ':' + str(addr[1]))
 	while True:
-		do_send(conn)
-		do_recv(conn)
+		e = do_send(conn)
+		if e:
+			print(e)
+		else:
+			do_recv(conn)
 main()
