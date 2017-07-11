@@ -6,12 +6,35 @@
 #include "apibot_follow.h"
 #include <string.h>
 #include <time.h>
+#include "control_panel.h"
+
+#define create_thread(funct, obj) do {				\
+	pthread_t thread;								\
+	if (pthread_create(&thread, NULL, funct, obj))	\
+		fatal("Thread creation failed");			\
+} while (0);
 
 static void *run_bot(void *ptr)
 {
 	struct Bot *bot = (struct Bot*)ptr;
 	Bot_start(bot);
 	Bot_dispose(bot);
+	return NULL;
+}
+
+static void *run_control_panel(void *ptr)
+{
+	UNUSED(ptr);
+	sock_t sock = open_sock("127.0.0.1", 7766);
+	if (sock == 0) {
+		warning("Could not connect to control panel");
+		print_errno(true);
+		return NULL;
+	}
+	struct ControlPanel *panel = ControlPanel_new(sock);
+	while (ControlPanel_listen(panel)) {
+		sleep_ms(10);
+	}
 	return NULL;
 }
 
@@ -179,14 +202,24 @@ int main(int argc, char **argv)
 	init_bot_api(2);
 	register_apibot_afk();
 	register_apibot_follow();
-
+	/**
+	//<REMOVE>
+	create_thread(run_control_panel, NULL);
+	while (true) {
+		sleep_ms(100);
+	}
+	//</REMOVE>
+	*/
+	bots_running = (struct Bot**)malloc(sizeof(struct Bot*) * bots_to_create);
 	for (i = 0; i < bots_to_create; i++) {
-		struct Bot *bot = Bot_new(api_number);
-		pthread_t thread;
-		if (pthread_create(&thread, NULL, run_bot, bot))
-			fatal("Thread creation failed");
+		bots_running[i] = Bot_new(api_number);
+		create_thread(run_bot, bots_running[i]);
 		sleep_ms(3000);
 	}
+	/**
+	
+	*/
+	create_thread(run_control_panel, NULL);
 	while (true) {
 		Scheduler_tick(Main_Scheduler);
 		sleep_ms(10);

@@ -13,6 +13,8 @@
 typedef uint8_t byte;
 typedef int sock_t;
 
-void fatal(char *);
+void print_errno(bool);
+void fatal(const char *);
+void warning(const char *);
 
 #endif

@@ -9,6 +9,7 @@
 #define PORT 5555
 
 volatile int num_bots_running = 0;
+struct Bot **bots_running = NULL;
 char *x_arg = NULL;
 char *override_username = NULL;
 char *override_password = NULL;

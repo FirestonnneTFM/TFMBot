@@ -27,7 +27,7 @@ void Map_load(struct Map *self, byte *buf, int len)
 	inflateEnd(&stream);
 
 	if (stream.total_out == XML_BUF_SIZE)
-		puts("Warning : map xml was too large for buffer");
+		warning("map xml was too large for buffer");
 
 	free(self->xml);
 	self->xml_len = stream.total_out;

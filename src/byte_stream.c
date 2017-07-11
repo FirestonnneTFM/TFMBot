@@ -1,4 +1,5 @@
 #include "byte_stream.h"
+#include "connection.h"
 #include "crypto.h"
 #include <string.h>
 #include <stdint.h>
@@ -113,18 +114,6 @@ void ByteStream_write_sock(struct ByteStream *self, sock_t sock, byte k)
 		fatal("Sock write failed");
 }
 
-static void read_byte(sock_t sock, byte *buf)
-{
-	int n;
-	while ((n = read(sock, buf, 1)) != 1) {
-		if (n < 0)
-			fatal("Sock closed");
-		// sleeping prevents the cpu from going crazy while waiting
-		// for socket input
-		sleep_ms(1);
-	}
-}
-
 char *ByteStream_read_str(struct ByteStream *self)
 {
 	uint16_t len = ByteStream_read_u16(self);
@@ -140,35 +129,22 @@ void ByteStream_read_sock(struct ByteStream *self, sock_t sock)
 	// length is (1 for byte, 2 for short), followed by the actual
 	// encoded length
 	byte ll;
-	read_byte(sock, &ll);
+	sock_read_byte(sock, &ll);
 	int len;
 	byte len_byte[2];
 	if (ll == 1) {
-		read_byte(sock, len_byte);
+		sock_read_byte(sock, len_byte);
 		len = len_byte[0];
 	} else if (ll == 2) {
-		read_byte(sock, len_byte);
-		read_byte(sock, len_byte + 1);
+		sock_read_byte(sock, len_byte);
+		sock_read_byte(sock, len_byte + 1);
 		len = (len_byte[0] << 8) | len_byte[1];
 	} else {
 		fatal("Malformed packet");
 		len = 0;
 	}
-	// Try to fill this buffer with the amount of bytes that was
-	// specified by the packet
 	byte buf[len];
-	// pbuf exists to keep a pointer to the start of the fill area
-	// pos is a relative count of this
-	byte *pbuf = buf;
-	int pos = 0;
-	// loop until buffer is filled
-	while (pos < len) {
-		pbuf += pos;
-		int n = read(sock, pbuf, len - pos);
-		if (n < 0)
-			fatal("Read failed");
-		pos += n;
-	}
+	sock_block_read(sock, buf, len);
 	int i;
 	for (i = 0; i < len; i++) {
 		ByteStream_write_byte(self, buf[i]);
@@ -224,14 +200,14 @@ void ByteStream_block_cipher(struct ByteStream *self)
 	}
 	// start at 2 to ignore the CCC prefix
 	self->position = 2;
-	int num_chunks = self->count / 4;
+	int num_chunks = (self->count - 2) / 4;
 	uint32_t chunks[num_chunks];
 	for (i = 0; i < num_chunks; i++) {
 		chunks[i] = ByteStream_read_u32(self);
 	}
 	// the cryto algorithm
 	btea(chunks, num_chunks);
-	self->count = 0;
+	self->count = 2;
 	self->position = 2;
 	ByteStream_write_u16(self, num_chunks);
 	for (i = 0; i < num_chunks; i++) {

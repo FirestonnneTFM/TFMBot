@@ -25,11 +25,11 @@ static uint32_t pack_host(char *host)
 	return htonl(res);
 }
 
-static inline sock_t open_sock(char *host_name, int port)
+sock_t open_sock(char *host_name, int port)
 {
 	sock_t sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0)
-		fatal("Socket can't be opened");
+		fatal("Socket can't be created");
 	struct hostent *host = gethostbyname(host_name);
 	if (host == NULL)
 		fatal("Host could not be resolved");
@@ -38,7 +38,7 @@ static inline sock_t open_sock(char *host_name, int port)
 	server_addr.sin_port = htons(port);
 	server_addr.sin_addr.s_addr = pack_host(host->h_addr_list[0]);
 	if (connect(sock, (struct sockaddr*)(&server_addr), sizeof(server_addr)))
-		fatal("Could not connect");
+		return 0;
 	return sock;
 }
 
@@ -47,4 +47,34 @@ void Connection_open(struct Connection *self, char *host, int port)
 	if (self->sock)
 		close(self->sock);
 	self->sock = open_sock(host, port);
+	if (self->sock == 0)
+		fatal("Could not connect");
+}
+
+void sock_read_byte(sock_t sock, byte *buf)
+{
+	int n;
+	while ((n = read(sock, buf, 1)) != 1) {
+		if (n < 0)
+			fatal("Sock closed");
+		// sleeping prevents the cpu from going crazy while waiting
+		// for socket input
+		sleep_ms(1);
+	}
+}
+
+void sock_block_read(sock_t sock, byte *buf, int len)
+{
+	// pbuf exists to keep a pointer to the start of the fill area
+	// pos is a relative count of this
+	byte *pbuf = buf;
+	int pos = 0;
+	// loop until buffer is filled
+	while (pos < len) {
+		pbuf += pos;
+		int n = read(sock, pbuf, len - pos);
+		if (n < 0)
+			fatal("Read failed");
+		pos += n;
+	}
 }

@@ -39,6 +39,7 @@ struct Bot {
 };
 
 extern volatile int num_bots_running;
+extern struct Bot **bots_running;
 extern char *x_arg;
 extern char *override_username;
 extern char *override_password;

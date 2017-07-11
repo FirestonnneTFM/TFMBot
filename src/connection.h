@@ -12,6 +12,8 @@ struct Connection {
 #define Connection_new()((struct Connection*)calloc(1, sizeof(struct Connection)))
 void Connection_dispose(struct Connection *);
 void Connection_send(struct Connection *, struct ByteStream *);
-void Connection_open(struct Connection *, char *host, int port);
-
+void Connection_open(struct Connection *, char *, int);
+sock_t open_sock(char *, int);
+void sock_read_byte(sock_t, byte *);
+void sock_block_read(sock_t, byte *, int);
 #endif
