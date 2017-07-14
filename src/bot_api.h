@@ -116,7 +116,16 @@ struct BotApi {
 	 * in any of the other events.
 	 */
 	void (*on_dispose)(struct Bot *);
-};
+
+	/**
+	 * Event triggered when a command is sent from the control
+	 * panel. The first string passed is the command, which is always
+	 * 3 characters, and represents the command. The second argument
+	 * the length of the body of the command, followed by the actual
+	 * string. The body could be an empty string. Return true if the
+	 * command was found, or false if unused.
+	*/
+	bool(*on_control)(struct Bot *, char *, char *); };
 
 void init_bot_api(int);
 struct BotApi *get_registered_api(int);

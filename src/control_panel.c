@@ -1,6 +1,5 @@
 #include "control_panel.h"
 #include "connection.h"
-#include <unistd.h>
 #include <string.h>
 #include "bot.h"
 
@@ -29,6 +28,7 @@ bool ControlPanel_listen(struct ControlPanel *self)
 	char msg[len + 1];
 	sock_block_read(self->sock, msg, len);
 	msg[len] = '\0';
+	// this is probably the ugliest control flow
 	if (cmd_chk('s', 'a', 'y')) {
 		Bot_send_chat(sel_bot(), msg);
 		cmd_yield(NULL);
@@ -54,8 +54,18 @@ bool ControlPanel_listen(struct ControlPanel *self)
 		cmd_yield(buf);
 	} else if (cmd_chk('w', 'h', 'o')) {
 		cmd_yield(":(((((");
+	} else if (sel_bot()->api->on_control) {
+		char cmd[4];
+		int i;
+		for (i = 0; i < 3; i++)
+			cmd[i] = header[i];
+		cmd[i] = '\0';
+		if (! sel_bot()->api->on_control(sel_bot(), cmd, msg))
+			cmd_yield("Command not found");
+	} else {
+		cmd_yield("Command not found");
 	}
-	cmd_yield("Command not found");
+	cmd_yield("Error, command never yields");
 }
 
 void ControlPanel_reply(struct ControlPanel *self, char *msg)
@@ -69,8 +79,8 @@ void ControlPanel_reply(struct ControlPanel *self, char *msg)
 		int len = strlen(msg);
 		buf[0] = len & 0xff;
 		buf[1] = (len >> 8) & 0xff;
-		write(self->sock, buf, 2);
+		sock_write(self->sock, buf, 2);
 		if (len)
-			write(self->sock, msg, len);
+			sock_write(self->sock, msg, len);
 	}
 }

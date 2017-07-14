@@ -51,6 +51,12 @@ void Connection_open(struct Connection *self, char *host, int port)
 		fatal("Could not connect");
 }
 
+void sock_write(sock_t sock, void *buf, int len)
+{
+	if (write(sock, buf, len) != len)
+		fatal("Sock write failed");
+}
+
 void sock_read_byte(sock_t sock, void *buf)
 {
 	int n;

@@ -108,10 +108,8 @@ void ByteStream_write_sock(struct ByteStream *self, sock_t sock, byte k)
 		header[2] = (byte)(self->count & 0xff);
 	}
 	header[header_size - 1] = k;
-	if (write(sock, header, header_size) != header_size)
-		fatal("Sock write failed");
-	if (write(sock, self->array, self->count) != self->count)
-		fatal("Sock write failed");
+	sock_write(sock, header, header_size);
+	sock_write(sock, self->array, self->count);
 }
 
 char *ByteStream_read_str(struct ByteStream *self)
