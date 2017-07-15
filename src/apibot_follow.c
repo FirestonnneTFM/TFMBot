@@ -3,42 +3,42 @@
 #include <string.h>
 #include "scheduler.h"
 
-#define COMMANDER_USERNAME()(x_arg)
-
 static struct Player *target = NULL;
-static struct Player *commander = NULL;
+static struct Player *default_target = NULL;
 #define api_data()(*((int*)self->api_data))
-
-static void on_player_join(struct Bot *self, struct Player *player)
+#define cmd_yield(s) do { ControlPanel_reply(ctrl, s); return true; } while(0)
+	
+static bool on_control(struct Bot *self, struct ControlPanel *ctrl, uint32_t cmd, char *msg)
 {
-	UNUSED(self);
-	if (strcmp(player->name, COMMANDER_USERNAME()) == 0) {
-		commander = player;
-		printf("Commander set to : %s\n", COMMANDER_USERNAME());
-	}
-}
-
-static inline bool cmd_check(char *raw, char a, char b)
-{
-	return raw[1] == a && raw[2] == b && raw[3] == ' ';
-}
-
-static void on_player_chat(struct Bot *self, struct Player *player, char *msg)
-{
-	if (! commander)
-		return;
-	if (player->id != commander->id || msg[0] != '~' || strlen(msg) < 3)
-		return;
-	char *ptr = msg + 4;
-	if (cmd_check(msg, 'o', 'n')) {
-		if (strlen(ptr) < 3)
-			target = Room_get_player_name(self->room, COMMANDER_USERNAME());
+	switch (cmd) {
+	case 'pon': {
+		if (default_target && strlen(msg) < 1)
+			target = default_target;
 		else
-			target = Room_get_player_name(self->room, ptr);
-		if (target)
-			printf("Target set to : %s\n", ptr);
-	} else if (cmd_check(msg, 't', 'o')) {
-		Bot_change_room(self, ptr);
+			target = Room_get_player_name_closest(self->room, msg);
+		if (target) {
+			char buf[32];
+			sprintf(buf, "Target set to : %s", target->name);
+			cmd_yield(buf);
+		} else {
+			cmd_yield("Target not found");
+		}
+	}
+	case 'com': {
+		if (msg[0])
+			default_target = Room_get_player_name_closest(self->room, msg);
+		else if (x_arg)
+			default_target = Room_get_player_name(self->room, x_arg);
+		if (default_target) {
+			char buf[32];
+			sprintf(buf, "Default set to : %s", default_target->name);
+			cmd_yield(buf);
+		} else {
+			cmd_yield("Player not found");
+		}
+	}
+	default:
+		return false;
 	}
 }
 
@@ -79,8 +79,6 @@ static bool send_coords(void *ptr)
 
 static void on_connect(struct Bot *self)
 {
-	if (x_arg == NULL)
-		fatal("Follow bot needs an x-arg for the commander");
 	self->player->x = 0x1921;
 	self->player->y = 0x0A0C;
 	self->api_data = (int*)malloc(sizeof(int));
@@ -106,9 +104,12 @@ void register_apibot_follow(void)
 	struct BotApi *api = BotApi_new("follow bot");
 	api->on_connect = on_connect;
 	api->get_login_room = get_login_room;
-	api->on_player_join = on_player_join;
 	api->on_player_move = on_player_move;
 	api->on_dispose = on_dispose;
-	api->on_player_chat = on_player_chat;
+	api->on_control = on_control;
 	BotApi_register(api);
 }
+
+
+
+

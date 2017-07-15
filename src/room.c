@@ -50,3 +50,20 @@ struct Player *Room_get_player_name(struct Room *self, char *player_name)
 	}
 	return NULL;
 }
+
+struct Player *Room_get_player_name_closest(struct Room *self, char *partial)
+{
+	struct Player *i;
+	struct Player *ret = NULL;
+	int highest = 0;
+	for (i = self->players; i != NULL; i = i->next) {
+		int j = 0;
+		while (partial[j] && i->name[j] && partial[j] == i->name[j])
+			j++;
+		if (j > highest) {
+			highest = j;
+			ret = i;
+		}
+	}
+	return ret;
+}

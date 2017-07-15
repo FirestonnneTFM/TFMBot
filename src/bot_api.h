@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "player.h"
+#include "control_panel.h"
 
 struct Bot;
 
@@ -115,15 +116,17 @@ struct BotApi {
 
 	/**
 	 * Event triggered when a command is sent from the control
-	 * panel. The first value represents the command, which is always
-	 * a 3 character string, so it is encoded via ascii as a u32. This
-	 * way you can use multiple chars with single quotes in a switch
-	 * statement. The second argument the length of the body of the
-	 * command, followed by the actual string. The body could be an
-	 * empty string. Return true if the command was found, or false if
-	 * unused.
+	 * panel. A pointer to the control panel is passed in addition to
+	 * the bot. The first value represents the command, which is
+	 * always a 3 character string, so it is encoded via ascii as a
+	 * u32. This way you can use multiple chars with single quotes in
+	 * a switch statement. The second argument the length of the body
+	 * of the command, followed by the actual string. The body could
+	 * be an empty string. Return true if the command was found, or
+	 * false if unused.
 	*/
-	bool(*on_control)(struct Bot *, uint32_t, char *); };
+	bool(*on_control)(struct Bot *, struct ControlPanel *, uint32_t, char *);
+};
 
 void init_bot_api(int);
 struct BotApi *get_registered_api(int);

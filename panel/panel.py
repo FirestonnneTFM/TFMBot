@@ -9,7 +9,7 @@ def block_recv(sock, n):
 	return data
 
 def do_send(sock):
-	s = input('> ')
+	s = input('> ').strip()
 	s_len = len(s)
 	if s_len < 1:
 		return False

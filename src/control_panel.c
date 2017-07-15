@@ -14,8 +14,8 @@ struct ControlPanel *ControlPanel_new(sock_t sock)
 	return self;
 }
 
-#define cmd_yield(s) do { ControlPanel_reply(self, s); return true; } while(0);
-#define cmd_get_int(n) do { if (sscanf(msg, "%d", n) != 1) cmd_yield("Integer expected"); } while (0);
+#define cmd_yield(s) do { ControlPanel_reply(self, s); return true; } while(0)
+#define cmd_get_int(n) do { if (sscanf(msg, "%d", n) != 1) cmd_yield("Integer expected"); } while (0)
 #define sel_bot()(bots_running[self->bot_index])
 
 bool ControlPanel_listen(struct ControlPanel *self)
@@ -30,7 +30,7 @@ bool ControlPanel_listen(struct ControlPanel *self)
 	char msg[len + 1];
 	sock_block_read(self->sock, msg, len);
 	msg[len] = '\0';
-	if (sel_bot()->api->on_control && sel_bot()->api->on_control(sel_bot(), cmd, msg)) {
+	if (sel_bot()->api->on_control && sel_bot()->api->on_control(sel_bot(), self, cmd, msg)) {
 		return true;
 	}
 	switch (cmd) {
@@ -69,11 +69,10 @@ bool ControlPanel_listen(struct ControlPanel *self)
 	}
 	case 'cht':{
 		Bot_join_cp_chat(sel_bot(), msg);
-		if (msg[0] == '#') {
+		if (msg[0] == '#')
 			cmd_yield(NULL);
-		} else {
+		else
 			cmd_yield("You might be missing a '#' in the name");
-		}
 	}
 	case 'who':
 		cmd_yield(":(");
