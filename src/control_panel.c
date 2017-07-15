@@ -10,11 +10,12 @@ struct ControlPanel *ControlPanel_new(sock_t sock)
 		fatal("Attempted to create ControlPanel on NULL sock");
 	self->sock = sock;
 	self->bot_index = 0;
+	self->chat_target = 'r';
 	return self;
 }
 
-#define cmd_chk(a, b, c)(header[0] == a && header[1] == b && header[2] == c)
 #define cmd_yield(s) do { ControlPanel_reply(self, s); return true; } while(0);
+#define cmd_get_int(n) do { if (sscanf(msg, "%d", n) != 1) cmd_yield("Integer expected"); } while (0);
 #define sel_bot()(bots_running[self->bot_index])
 
 bool ControlPanel_listen(struct ControlPanel *self)
@@ -24,48 +25,71 @@ bool ControlPanel_listen(struct ControlPanel *self)
 	// offset 5+    : message
 	byte header[5];
 	sock_block_read(self->sock, header, 5);
+	uint32_t cmd = header[2] | (header[1] << 8) | (header[0] << 16);
 	uint16_t len = header[3] | (header[4] << 8);
 	char msg[len + 1];
 	sock_block_read(self->sock, msg, len);
 	msg[len] = '\0';
-	// this is probably the ugliest control flow
-	if (cmd_chk('s', 'a', 'y')) {
-		Bot_send_chat(sel_bot(), msg);
-		cmd_yield(NULL);
-	} else if (cmd_chk('c', 'm', 'd')) {
+	if (sel_bot()->api->on_control && sel_bot()->api->on_control(sel_bot(), cmd, msg)) {
+		return true;
+	}
+	switch (cmd) {
+	case 'say':
+		switch (self->chat_target) {
+		case 'r':
+			Bot_send_chat(sel_bot(), msg);
+			cmd_yield(NULL);
+		case 'c':
+			Bot_send_cp_chat(sel_bot(), "us", msg);
+			cmd_yield(NULL);
+		default:
+			cmd_yield("Bad target");
+		}
+	case 'cmd':
 		Bot_send_command(sel_bot(), msg);
 		cmd_yield(NULL);
-	} else if (cmd_chk('s', 'e', 'l')) {
+	case 'sel': {
 		int n;
-		if (sscanf(msg, "%d", &n) != 1)
-			cmd_yield("Integer expected");
+		cmd_get_int(&n);
 		if (n < 0 || n >= num_bots_running)
 			cmd_yield("Out of range");
 		self->bot_index = n;
 		cmd_yield(NULL);
-	} else if (cmd_chk('l', 's', 't')) {
+	}
+	case 'lst': {
 		char buf[64];
 		sprintf(buf, "%d bots running", num_bots_running);
 		cmd_yield(buf);
-	} else if (cmd_chk('b', 'o', 't')) {
+	}
+	case 'bot': {
 		char buf[128];
 		sprintf(buf, "Player #%u %s; Room : %s", sel_bot()->player->id,
 				sel_bot()->player->name, sel_bot()->room->name);
 		cmd_yield(buf);
-	} else if (cmd_chk('w', 'h', 'o')) {
-		cmd_yield(":(((((");
-	} else if (sel_bot()->api->on_control) {
-		char cmd[4];
-		int i;
-		for (i = 0; i < 3; i++)
-			cmd[i] = header[i];
-		cmd[i] = '\0';
-		if (! sel_bot()->api->on_control(sel_bot(), cmd, msg))
-			cmd_yield("Command not found");
-	} else {
+	}
+	case 'cht':{
+		Bot_join_cp_chat(sel_bot(), msg);
+		if (msg[0] == '#') {
+			cmd_yield(NULL);
+		} else {
+			cmd_yield("You might be missing a '#' in the name");
+		}
+	}
+	case 'who':
+		cmd_yield(":(");
+	case 'tar': {
+		if (msg[0] == '\0') {
+			char buf[32];
+			sprintf(buf, "Chat target is %c", self->chat_target);
+			cmd_yield(buf);
+		} else {
+			self->chat_target = msg[0];
+			cmd_yield(NULL);
+		}
+	}
+	default:
 		cmd_yield("Command not found");
 	}
-	cmd_yield("Error, command never yields");
 }
 
 void ControlPanel_reply(struct ControlPanel *self, char *msg)

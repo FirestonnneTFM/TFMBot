@@ -94,22 +94,16 @@ static void on_dispose(struct Bot *self)
 	free(self->api_data);
 }
 
-static char *get_login_room(struct Bot *self)
+static bool get_login_room(struct Bot *self, char **name)
 {
 	UNUSED(self);
-	return "801";
-}
-
-static char *get_username(struct Bot *self)
-{
-	UNUSED(self);
-	return "Souris";
+	*name = "801";
+	return false;
 }
 
 void register_apibot_follow(void)
 {
 	struct BotApi *api = BotApi_new("follow bot");
-	api->get_username = get_username;
 	api->on_connect = on_connect;
 	api->get_login_room = get_login_room;
 	api->on_player_join = on_player_join;

@@ -6,6 +6,7 @@
 struct ControlPanel {
 	sock_t sock;
 	int bot_index;
+	char chat_target;
 };
 
 struct ControlPanel *ControlPanel_new(sock_t);

@@ -1,6 +1,7 @@
 #include "apibot_afk.h"
 #include "bot.h"
 #include "scheduler.h"
+#include "control_panel.h"
 
 #define api_data()(*((bool*)self->api_data))
 
@@ -58,27 +59,27 @@ static void on_connect(struct Bot *self)
 	self->api_data = calloc(1, sizeof(bool));
 }
 
-static char *get_login_room(struct Bot *self)
+static bool get_login_room(struct Bot *self, char **roomname)
 {
 	UNUSED(self);
-	char *roomname = (char*)malloc(sizeof(char) * 16);
-	sprintf(roomname, "village ");
+	*roomname = (char*)malloc(sizeof(char) * 16);
+	sprintf(*roomname, "village ");
 	int i;
 	for (i = 8; i < 15; i++) {
-		roomname[i] = (rand() % 26) + 'a';
+		roomname[0][i] = (rand() % 26) + 'a';
 	}
-	roomname[i] = '\0';
-	return roomname;
+	roomname[0][i] = '\0';
+	return true;
 }
 
-static char *get_username(struct Bot *self)
+static bool get_username(struct Bot *self, char **username)
 {
 	UNUSED(self);
 	int index = num_bots_running - 1;
 	if (index >= num_of_usernames)
-		return NULL;
-	else
-		return list_of_usernames[index];
+		return false;
+	*username = list_of_usernames[index];
+	return true;
 }
 
 void register_apibot_afk()

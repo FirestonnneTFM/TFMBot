@@ -9,6 +9,7 @@ struct Player *Player_new()
 
 void Player_dispose(struct Player *self)
 {
+	free(self->name);
 	free(self);
 }
 

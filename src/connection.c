@@ -62,7 +62,7 @@ void sock_read_byte(sock_t sock, void *buf)
 	int n;
 	while ((n = read(sock, buf, 1)) != 1) {
 		if (n < 0)
-			fatal("Sock closed");
+			fatal("Sock write failed");
 		// sleeping prevents the cpu from going crazy while waiting
 		// for socket input
 		sleep_ms(1);
@@ -78,11 +78,15 @@ void sock_block_read(sock_t sock, void *buf, int len)
 	byte *pbuf = buf;
 	int pos = 0;
 	// loop until buffer is filled
-	while (pos < len) {
+	while (true) {
 		pbuf += pos;
 		int n = read(sock, pbuf, len - pos);
 		if (n < 0)
 			fatal("Read failed");
 		pos += n;
+		if (pos < len)
+			sleep_ms(1);
+		else
+			break;
 	}
 }

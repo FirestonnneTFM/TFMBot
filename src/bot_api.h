@@ -17,6 +17,14 @@ struct Bot;
  * All of the function pointers can also be left as NULL, which can
  * either make the bot not listen for the event, or cause a default
  * action to occur.
+ *
+ * NOTE : for `get_username` and `get_login_room`. These methods are
+ * meant to communicate strings, but DO NOT RETURN ANY
+ * POINTERS. Instead, use the pointer supplied as an argument, which
+ * is NULL by default. The function should return true if the pointer
+ * needs to be freed; that is, if you called malloc or calloc on
+ * it. If you used a string literal then return false so the memory is
+ * not attempted to freed.
  */
 struct BotApi {
 	// the name of the api, not the player username
@@ -27,26 +35,14 @@ struct BotApi {
 	 * with. When NULL, "Souris" is used. Can be ignored if the -u
 	 * switch is passed.
 	 */
-	char *(*get_username)(struct Bot *);
-
-	/**
-	 * Returns the hashed password that the bot will use to login. Use
-	 * the --hash-password utility to create a hashed password from
-	 * plaintext. Neither plantext nor hashed passwords should be
-	 * present in shared source code, as both will compromise the
-	 * account. When NULL, an empty password will be used, and the bot
-	 * will connect as a guest account. Can be ignored if the -p
-	 * switched is passed, which generally speaking is probably the
-	 * best practice security-wise.
-	 */
-	char *(*get_password)(struct Bot *);
+	bool (*get_username)(struct Bot *, char **);
 
 	/**
 	 * Returns the name of the room that the bot should attempt to
 	 * join on login. When NULL, room "village gogogo" will be
 	 * used. Can be overridden by the -r switch.
 	 */
-	char *(*get_login_room)(struct Bot *);
+	bool (*get_login_room)(struct Bot *, char **);
 
 	/**
 	 * Event triggered immediately after obtaining a username from the
@@ -119,13 +115,15 @@ struct BotApi {
 
 	/**
 	 * Event triggered when a command is sent from the control
-	 * panel. The first string passed is the command, which is always
-	 * 3 characters, and represents the command. The second argument
-	 * the length of the body of the command, followed by the actual
-	 * string. The body could be an empty string. Return true if the
-	 * command was found, or false if unused.
+	 * panel. The first value represents the command, which is always
+	 * a 3 character string, so it is encoded via ascii as a u32. This
+	 * way you can use multiple chars with single quotes in a switch
+	 * statement. The second argument the length of the body of the
+	 * command, followed by the actual string. The body could be an
+	 * empty string. Return true if the command was found, or false if
+	 * unused.
 	*/
-	bool(*on_control)(struct Bot *, char *, char *); };
+	bool(*on_control)(struct Bot *, uint32_t, char *); };
 
 void init_bot_api(int);
 struct BotApi *get_registered_api(int);

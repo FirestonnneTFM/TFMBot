@@ -5,8 +5,8 @@
 #include "scheduler.h"
 
 #define HOST "164.132.202.12"
-//#define HOST "127.0.0.1"
 #define PORT 5555
+//#define PRINT_ALL_PACKETS
 
 volatile int num_bots_running = 0;
 struct Bot **bots_running = NULL;
@@ -21,7 +21,7 @@ static bool heartbeat_task(void *ptr)
 	// we must send this heartbeat every so often
 	// ten seconds is fine
 	struct ByteStream *b = ByteStream_new();
-	ByteStream_write_u16(b, 0x1A1A);
+	ByteStream_write_u16(b, CCC_HEARTBEAT);
 	// send it to both connections
 	Connection_send(self->main_conn, b);
 	Connection_send(self->bulle_conn, b);
@@ -36,6 +36,7 @@ struct Bot *Bot_new(int which_api)
 	self->api_data = NULL;
 	self->main_conn = Connection_new();
 	self->bulle_conn = Connection_new();
+	self->cp_index = 0;
 	self->api = get_registered_api(which_api);
 	self->room = Room_new();
 	self->player = Player_new();
@@ -60,7 +61,7 @@ void Bot_dispose(struct Bot *self)
 void Bot_send_player_coords(struct Bot *self, struct Player *player)
 {
 	struct ByteStream *b = ByteStream_new();
-	ByteStream_write_u16(b, 0x0404);
+	ByteStream_write_u16(b, CCC_PLAYER_POSITION);
 	ByteStream_write_u32(b, player->round_num);
 	ByteStream_write_byte(b, player->key_right);
 	ByteStream_write_byte(b, player->key_left);
@@ -91,7 +92,7 @@ void Bot_change_room(struct Bot *self, char *room_name)
 void Bot_send_chat(struct Bot *self, char *msg)
 {
 	struct ByteStream *b = ByteStream_new();
-	ByteStream_write_u16(b, 0x0606);
+	ByteStream_write_u16(b, CCC_PLAYER_CHAT);
 	ByteStream_write_str(b, msg);
 	ByteStream_xor_cipher(b, self->bulle_conn->k);
 	Connection_send(self->bulle_conn, b);
@@ -101,7 +102,7 @@ void Bot_send_chat(struct Bot *self, char *msg)
 void Bot_send_command(struct Bot *self, char *cmd)
 {
 	struct ByteStream *b = ByteStream_new();
-	ByteStream_write_u16(b, 0x061a);
+	ByteStream_write_u16(b, CCC_PLAYER_CHAT_COMMAND);
 	ByteStream_write_str(b, cmd);
 	ByteStream_xor_cipher(b, self->main_conn->k);
 	Connection_send(self->main_conn, b);
@@ -111,17 +112,43 @@ void Bot_send_command(struct Bot *self, char *cmd)
 void Bot_send_emote(struct Bot *self, byte emote)
 {
 	struct ByteStream *b = ByteStream_new();
-	ByteStream_write_u16(b, 0x0801);
+	ByteStream_write_u16(b, CCC_PLAYER_EMOTE);
 	ByteStream_write_byte(b, emote);
 	ByteStream_write_u32(b, 0xFFFFFFFF);
 	Connection_send(self->bulle_conn, b);
 	ByteStream_dispose(b);
 }
 
+void Bot_join_cp_chat(struct Bot *self, char *chat)
+{
+	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u16(b, CCC_CP_PROTOCOL);
+	ByteStream_write_u16(b, CP_CCC_JOIN_CHAT);
+	ByteStream_write_u32(b, ++(self->cp_index));
+	ByteStream_write_str(b, chat);
+	ByteStream_write_byte(b, 0x01);
+	ByteStream_xor_cipher(b, self->main_conn->k);
+	Connection_send(self->main_conn, b);
+	ByteStream_dispose(b);
+}
+
+void Bot_send_cp_chat(struct Bot *self, char *chat, char *msg)
+{
+	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u16(b, CCC_CP_PROTOCOL);
+	ByteStream_write_u16(b, CP_CCC_CHAT_SEND);
+	ByteStream_write_u32(b, ++(self->cp_index));
+	ByteStream_write_str(b, chat);
+	ByteStream_write_str(b, msg);
+	ByteStream_xor_cipher(b, self->main_conn->k);
+	Connection_send(self->main_conn, b);
+	ByteStream_dispose(b);
+}
+
 static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, uint16_t ccc, struct ByteStream *b)
 {
 	switch (ccc) {
-	case 0x1A03: {
+	case CCC_HANDSHAKE_OK: {
 		uint32_t players_online = ByteStream_read_u32(b);
 		conn->k = ByteStream_read_byte(b);
 		char *community = ByteStream_read_str(b);
@@ -133,14 +160,14 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		free(community);
 
 		b = ByteStream_new();
-		ByteStream_write_u16(b, 0x0802);
+		ByteStream_write_u16(b, CCC_SET_COMMUNITY);
 		// 0x0E is for E2 community
 		ByteStream_write_u16(b, 0x0E00);
 		Connection_send(conn, b);
 		ByteStream_dispose(b);
 
 		b = ByteStream_new();
-		ByteStream_write_u16(b, 0x1C11);
+		ByteStream_write_u16(b, CCC_OS_INFO);
 		ByteStream_write_str(b, "en");
 		ByteStream_write_str(b, "Windows 8");
 		ByteStream_write_str(b, "WIN 25,0,0,127");
@@ -148,32 +175,26 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		Connection_send(conn, b);
 		ByteStream_dispose(b);
 
-		char *username;
+		char *username = NULL;
+		bool free_username = false;
 		if (override_username)
 			username = override_username;
 		else if (self->api->get_username)
-			username = self->api->get_username(self);
-		else
-			username = "Souris";
+			free_username = self->api->get_username(self, &username);
+		
+		char *password = override_password ? override_password : NULL;
 
-		char *password;
-		if (override_password)
-			password = override_password;
-		else if (self->api->get_password)
-			password = self->api->get_password(self);
-		else
-			password = NULL;
-
-		char *login_room;
+		char *login_room = NULL;
+		bool free_login_room = false;
 		if (override_roomname)
 			login_room = override_roomname;
 		else if (self->api->get_login_room)
-			login_room = self->api->get_login_room(self);
+			free_login_room = self->api->get_login_room(self, &login_room);
 		else
 			login_room = "village gogogo";
 
 		b = ByteStream_new();
-		ByteStream_write_u16(b, 0x1A08);
+		ByteStream_write_u16(b, CCC_LOGIN);
 		ByteStream_write_str(b, username);
 		ByteStream_write_str(b, password);
 		ByteStream_write_str(b, "app:/TransformiceAIR.swf/[[DYNAMIC]]/2/[[DYNAMIC]]/4");
@@ -183,14 +204,18 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		ByteStream_write_byte(b, 0);
 		Connection_send(conn, b);
 		ByteStream_dispose(b);
+		if (free_username)
+			free(username);
+		if (free_login_room)
+			free(login_room);
 		break;
 	}
-	case 0x1A02:
+	case CCC_LOGIN_OK:
 		// I think this might be your forum ID, zero for guests
 		ByteStream_read_u32(b);
 		self->player->name = ByteStream_read_str(b);
 		break;
-	case 0x2C01: {
+	case CCC_SWITCH_BULLE: {
 		// information to connect to game sock
 		if (self->bulle_conn->sock) {
 			puts("attempting to change server");
@@ -205,13 +230,13 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		}
 		Scheduler_add(Main_Scheduler, Task_new(10000, heartbeat_task, self));
 		b = ByteStream_new();
-		ByteStream_write_u16(b, 0x2C01);
+		ByteStream_write_u16(b, CCC_SWITCH_BULLE);
 		ByteStream_write_u32(b, self->player->id);
 		Connection_send(self->bulle_conn, b);
 		ByteStream_dispose(b);
 		break;
 	}
-	case 0x2C16:
+	case CCC_SET_KEY_OFFSET:
 		conn->k = ByteStream_read_byte(b);
 		break;
 	case 0x1C32:
@@ -219,11 +244,11 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		// and it wants you to send back a bunch of garbage
 		// we are going to ignore it now
 		break;
-	case 0x0701:
+	case CCC_WHICH_GAME:
 		// this one byte packet tells you what game you are joining
 		// 00 = transformice
 		break;
-	case 0x0515:
+	case CCC_ROOM_JOIN:
 		// packet for room
 		if (self->api->on_room_join == NULL)
 			break;
@@ -232,7 +257,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		self->room->name = ByteStream_read_str(b);
 		self->api->on_room_join(self);
 		break;
-	case 0x0502: {
+	case CCC_NEW_MAP: {
 		// packet for map
 		if (self->api->on_new_map == NULL)
 			break;
@@ -250,14 +275,14 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		self->api->on_new_map(self);
 		break;
 	}
-	case 0x0101: {
+	case CCC_OLD_PROTOCOL: {
 		// old protocol packet (why these still exist nobody knows)
 		// this u16 is the length of the old protocol packet
 		if (ByteStream_read_u16(b) < 2)
 			break;
 		uint16_t old_ccc = ByteStream_read_u16(b);
 		switch (old_ccc) {
-		case 0x0809: {
+		case OLD_CCC_LIST_OF_PLAYERS: {
 			// list of players in the room
 			bool flag = true;
 			while (flag) {
@@ -278,7 +303,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			}
 			break;
 		}
-		case 0x0808: {
+		case OLD_CCC_NEW_PLAYER: {
 			// new player joins rooms
 			struct Player *player = Player_new();
 			Player_from_old_protocol(player, b);
@@ -286,7 +311,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 				self->api->on_player_join(self, player);
 			break;
 		}
-		case 0x0805: {
+		case OLD_CCC_PLAYER_DIE: {
 			// gets sent when somebody dies
 			if (self->api->on_player_death == NULL)
 				break;
@@ -301,7 +326,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			self->api->on_player_death(self, Room_get_player_id(self->room, id));
 			break;
 		}
-		case 0x0807: {
+		case OLD_CCC_PLAYER_LEAVE: {
 			// gets sent when somebody leaves the room
 			uint32_t id = 0;
 			if (ByteStream_read_byte(b) != 0x01)
@@ -314,12 +339,12 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			Room_dispose_player(self->room, id);
 			break;
 		}
-		case 0x0815: {
+		case OLD_CCC_NEW_SHAMAN: {
 			// tells you who the shaman is
 			// 01 32 39 37 39 39 37 37 01 
 			break;
 		}
-		case 0x1a12: {
+		case OLD_CCC_BANNED: {
 			// ban message :(
 			if (ByteStream_read_byte(b) != 0x01)
 				break;
@@ -345,7 +370,34 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		}
 		break;
 	}
-	case 0x0404: {
+	case CCC_CP_PROTOCOL: {
+		uint32_t cp_ccc = ByteStream_read_u16(b);
+		switch (cp_ccc) {
+		case CP_CCC_JOIN_CHAT_OK: {
+			char *buf = ByteStream_read_str(b);
+			printf("Joined chat `%s`\n", buf);
+			free(buf);
+			break;
+		}
+		case CP_CCC_CHAT_RECV: {
+			char *username = ByteStream_read_str(b);
+			// might be community?
+			ByteStream_read_u32(b);
+			char *chat = ByteStream_read_str(b);
+			char *msg = ByteStream_read_str(b);
+			printf("[#%s] [%s] %s\n", chat, username, msg);
+			free(username);
+			free(chat);
+			free(msg);
+			break;
+		}
+		default:
+			printf("CP PROTOCOL  %04x : ", cp_ccc);
+			ByteStream_print(b, 4);
+		}
+		break;
+	}
+	case CCC_PLAYER_POSITION: {
 		// player movement / location
 		if (self->api->on_player_move == NULL)
 			break;
@@ -364,7 +416,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		self->api->on_player_move(self, player);
 		break;
 	}
-	case 0x0409: {
+	case CCC_PLAYER_DUCK: {
 		// duck
 		if (self->api->on_player_duck == NULL)
 			break;
@@ -375,7 +427,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		self->api->on_player_duck(self, player);
 		break;
 	}
-	case 0x0606: {
+	case CCC_PLAYER_CHAT: {
 		// chat message
 		if (self->api->on_player_chat == NULL)
 			break;
@@ -391,7 +443,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		self->api->on_player_chat(self, player, message);
 		break;
 	}
-	case 0x0801: {
+	case CCC_PLAYER_EMOTE: {
 		// emote
 		if (self->api->on_player_emote == NULL)
 			break;
@@ -402,14 +454,14 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		self->api->on_player_emote(self, player, emote_id);
 		break;
 	}
-	case 0x1c05: {
+	case CCC_SERVER_TEXT: {
 		// text sent from server, for example output of /mod
 		uint32_t len = ByteStream_read_u32(b);
 		if (*(b->array + b->position + len) == '\0')
 			puts((char*)b->array + b->position);
 		break;
 	}
-	case 0x0614: {
+	case CCC_TIME_VALUE: {
 		// result of /time
 		ByteStream_print_ascii(b, 5);
 		break;
@@ -466,7 +518,7 @@ void Bot_start(struct Bot *self)
 	num_bots_running ++;
 	// handshake packet
 	struct ByteStream *b = ByteStream_new();
-	ByteStream_write_u16(b, 0x1C01);
+	ByteStream_write_u16(b, CCC_HANDSHAKE);
 	ByteStream_write_u16(b, Key_Manager->handshake_number);
 	ByteStream_write_str(b, Key_Manager->handshake_string);
 	ByteStream_write_str(b, "Desktop");
