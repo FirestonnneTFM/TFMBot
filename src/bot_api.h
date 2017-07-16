@@ -49,7 +49,7 @@ struct BotApi {
 	 * Event triggered immediately after obtaining a username from the
 	 * server.
 	 */
-	void (*on_connect)(struct Bot *);
+	void (*on_login)(struct Bot *);
 
 	/**
 	 * Event triggerd immediately after joining a room.
@@ -126,6 +126,21 @@ struct BotApi {
 	 * false if unused.
 	*/
 	bool(*on_control)(struct Bot *, struct ControlPanel *, uint32_t, char *);
+
+	/**
+	 * Event triggered when the bot joins a community platform chat
+	 * room. These are the chats that are accessed in-game with the
+	 * /chat command (and through the control panel with the /cht
+	 * mnemonic. Arg passed is the chat name.
+	 */
+	void (*on_cp_chat_join)(struct Bot *, char *);
+
+	/**
+	 * Event triggered when the chat from a joined community platform
+	 * chat is recieved. First arg is the chat name, followed by the
+	 * player name, and the message.
+	 */
+	void (*on_cp_chat_recv)(struct Bot *, char *, char *, char *);
 };
 
 void init_bot_api(int);

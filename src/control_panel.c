@@ -10,7 +10,8 @@ struct ControlPanel *ControlPanel_new(sock_t sock)
 		fatal("Attempted to create ControlPanel on NULL sock");
 	self->sock = sock;
 	self->bot_index = 0;
-	self->chat_target = 'r';
+	self->chat_mode = 'r';
+	self->chat_target = "us";
 	return self;
 }
 
@@ -35,12 +36,12 @@ bool ControlPanel_listen(struct ControlPanel *self)
 	}
 	switch (cmd) {
 	case 'say':
-		switch (self->chat_target) {
+		switch (self->chat_mode) {
 		case 'r':
 			Bot_send_chat(sel_bot(), msg);
 			cmd_yield(NULL);
 		case 'c':
-			Bot_send_cp_chat(sel_bot(), "us", msg);
+			Bot_send_cp_chat(sel_bot(), self->chat_target, msg);
 			cmd_yield(NULL);
 		default:
 			cmd_yield("Bad target");
@@ -49,17 +50,17 @@ bool ControlPanel_listen(struct ControlPanel *self)
 		Bot_send_command(sel_bot(), msg);
 		cmd_yield(NULL);
 	case 'sel': {
+		if (msg[0] == '\0') {
+			char buf[32];
+			sprintf(buf, "%d bots running", num_bots_running);
+			cmd_yield(buf);
+		}
 		int n;
 		cmd_get_int(&n);
 		if (n < 0 || n >= num_bots_running)
 			cmd_yield("Out of range");
 		self->bot_index = n;
 		cmd_yield(NULL);
-	}
-	case 'lst': {
-		char buf[64];
-		sprintf(buf, "%d bots running", num_bots_running);
-		cmd_yield(buf);
 	}
 	case 'bot': {
 		char buf[128];
@@ -68,24 +69,39 @@ bool ControlPanel_listen(struct ControlPanel *self)
 		cmd_yield(buf);
 	}
 	case 'cht':{
-		Bot_join_cp_chat(sel_bot(), msg);
-		if (msg[0] == '#')
-			cmd_yield(NULL);
-		else
-			cmd_yield("You might be missing a '#' in the name");
+		if (msg[0] == '\0') {
+			Bot_join_cp_chat(sel_bot(), self->chat_target);
+		} else {
+			Bot_join_cp_chat(sel_bot(), msg);
+			if (msg[0] != '#')
+				cmd_yield("You might be missing a '#' in the name");
+		}
+		self->chat_mode = 'c';
+		cmd_yield(NULL);
 	}
 	case 'who':
 		cmd_yield(":(");
+	case 'cap':
+		Bot_do_register(sel_bot(), msg);
+		cmd_yield(NULL);
 	case 'tar': {
 		if (msg[0] == '\0') {
 			char buf[32];
-			sprintf(buf, "Chat target is %c", self->chat_target);
+			sprintf(buf, "Chat target is %c", self->chat_mode);
 			cmd_yield(buf);
 		} else {
-			self->chat_target = msg[0];
+			self->chat_mode = msg[0];
 			cmd_yield(NULL);
 		}
 	}
+	case 'kil':
+		puts("Control is killing process");
+		ControlPanel_reply(self, "Dead: send message to reconnect");
+		exit(0);
+		return false;
+	case 'roo':
+		Bot_change_room(sel_bot(), msg);
+		cmd_yield(NULL);
 	default:
 		cmd_yield("Command not found");
 	}

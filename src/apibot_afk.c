@@ -50,7 +50,7 @@ static bool send_coords(void *ptr)
 	return true;
 }
 
-static void on_connect(struct Bot *self)
+static void on_login(struct Bot *self)
 {
 	printf("Connected with name: %s\n", self->player->name);
 	self->player->x = 0x1921;
@@ -82,6 +82,17 @@ static bool get_username(struct Bot *self, char **username)
 	return true;
 }
 
+static void on_cp_chat_join(struct Bot *self, char *chat_name)
+{
+	UNUSED(self);
+	printf("Joined chat #%s\n", chat_name);
+}
+
+static void on_cp_chat_recv(struct Bot *self, char *chat, char *username, char *msg) {
+	UNUSED(self);
+	printf("[#%s] [%s] [%s]\n", chat, username, msg);
+}
+
 void register_apibot_afk()
 {
 	if (x_arg) {
@@ -104,11 +115,13 @@ void register_apibot_afk()
 	struct BotApi *api = BotApi_new("afk bot");
 	api->get_username = get_username;
 	api->get_login_room = get_login_room;
-	api->on_connect = on_connect;
+	api->on_login = on_login;
 	api->on_room_join = on_room_join;
 	api->on_new_map = on_new_map;
 	api->on_player_join = on_player_join;
 	api->on_player_chat = on_player_chat;
 	api->on_dispose = on_dispose;
+	api->on_cp_chat_join = on_cp_chat_join;
+	api->on_cp_chat_recv = on_cp_chat_recv;
 	BotApi_register(api);
 }

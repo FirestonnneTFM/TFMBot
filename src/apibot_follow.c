@@ -77,7 +77,7 @@ static bool send_coords(void *ptr)
 	return true;
 }
 
-static void on_connect(struct Bot *self)
+static void on_login(struct Bot *self)
 {
 	self->player->x = 0x1921;
 	self->player->y = 0x0A0C;
@@ -102,7 +102,7 @@ static bool get_login_room(struct Bot *self, char **name)
 void register_apibot_follow(void)
 {
 	struct BotApi *api = BotApi_new("follow bot");
-	api->on_connect = on_connect;
+	api->on_login = on_login;
 	api->get_login_room = get_login_room;
 	api->on_player_move = on_player_move;
 	api->on_dispose = on_dispose;

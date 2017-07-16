@@ -11,6 +11,7 @@
 volatile int num_bots_running = 0;
 struct Bot **bots_running = NULL;
 char *x_arg = NULL;
+byte login_mode = 0;
 char *override_username = NULL;
 char *override_password = NULL;
 char *override_roomname = NULL;
@@ -145,6 +146,33 @@ void Bot_send_cp_chat(struct Bot *self, char *chat, char *msg)
 	ByteStream_dispose(b);
 }
 
+void Bot_do_register(struct Bot *self, char *captcha)
+{
+	char *username = NULL;
+	bool free_username = false;
+	if (override_username)
+		username = override_username;
+	else if (self->api->get_username)
+		free_username = self->api->get_username(self, &username);
+	char *password = override_password;
+	if (password == NULL)
+		fatal("Registration requires a password");
+
+	struct ByteStream *b = ByteStream_new();
+	ByteStream_write_u16(b, CCC_REGISTER);
+	ByteStream_write_str(b, username);
+	ByteStream_write_str(b, password);
+	ByteStream_write_str(b, captcha);
+	ByteStream_write_u16(b, 0);
+	ByteStream_write_str(b, "app:/TransformiceAIR.swf/[[DYNAMIC]]/2/[[DYNAMIC]]/4");
+	ByteStream_xor_cipher(b, self->main_conn->k);
+	Connection_send(self->main_conn, b);
+	ByteStream_dispose(b);
+	
+	if (free_username)
+		free(username);
+}
+
 static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, uint16_t ccc, struct ByteStream *b)
 {
 	switch (ccc) {
@@ -158,6 +186,8 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			   country, community, players_online);
 		free(country);
 		free(community);
+		
+		Scheduler_add(Main_Scheduler, Task_new(10000, heartbeat_task, self));
 
 		b = ByteStream_new();
 		ByteStream_write_u16(b, CCC_SET_COMMUNITY);
@@ -192,7 +222,18 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			free_login_room = self->api->get_login_room(self, &login_room);
 		else
 			login_room = "village gogogo";
-
+		
+		switch (login_mode) {
+		case 1:
+			b = ByteStream_new();
+			ByteStream_write_u16(b, CCC_CAPTCHA);
+			Connection_send(conn, b);
+			ByteStream_dispose(b);
+			return;
+		case 2:
+			return;
+		}
+		
 		b = ByteStream_new();
 		ByteStream_write_u16(b, CCC_LOGIN);
 		ByteStream_write_str(b, username);
@@ -214,21 +255,16 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		// I think this might be your forum ID, zero for guests
 		ByteStream_read_u32(b);
 		self->player->name = ByteStream_read_str(b);
+		if (self->api->on_login) {
+			self->api->on_login(self);
+		}
 		break;
 	case CCC_SWITCH_BULLE: {
 		// information to connect to game sock
-		if (self->bulle_conn->sock) {
-			puts("attempting to change server");
-			break;
-		}
 		self->player->id = ByteStream_read_u32(b);
 		char *ip = ByteStream_read_str(b);
 		Connection_open(self->bulle_conn, ip, 5555);
 		free(ip);
-		if (self->api->on_connect) {
-			self->api->on_connect(self);
-		}
-		Scheduler_add(Main_Scheduler, Task_new(10000, heartbeat_task, self));
 		b = ByteStream_new();
 		ByteStream_write_u16(b, CCC_SWITCH_BULLE);
 		ByteStream_write_u32(b, self->player->id);
@@ -248,6 +284,29 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		// this one byte packet tells you what game you are joining
 		// 00 = transformice
 		break;
+	case CCC_CAPTCHA: {
+		uint16_t width = ByteStream_read_u16(b);
+		uint16_t height = ByteStream_read_u16(b);
+		if (width * height != ByteStream_read_u16(b))
+			warning("Bitmap width / height did not match size");
+		puts("CAPTCHA");
+		int x, y;
+		for (y = 0; y < height; y++) {
+			for (x = 0; x < width; x++) {
+				byte v = ByteStream_read_u32(b) >> 24;
+				if (v < 50)
+					putchar(' ');
+				else if (v < 100)
+					putchar('.');
+				else if (v < 200)
+					putchar('*');
+				else
+					putchar('8');
+			}
+			putchar('\n');
+		}
+		break;
+	}
 	case CCC_ROOM_JOIN:
 		// packet for room
 		if (self->api->on_room_join == NULL)
@@ -374,21 +433,48 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 		uint32_t cp_ccc = ByteStream_read_u16(b);
 		switch (cp_ccc) {
 		case CP_CCC_JOIN_CHAT_OK: {
-			char *buf = ByteStream_read_str(b);
-			printf("Joined chat `%s`\n", buf);
-			free(buf);
+			if (self->api->on_cp_chat_join == NULL)
+				break;
+			char *chat_name = ByteStream_read_str(b);
+			self->api->on_cp_chat_join(self, chat_name);
+			free(chat_name);
 			break;
 		}
 		case CP_CCC_CHAT_RECV: {
+			if (self->api->on_cp_chat_recv == NULL)
+				break;
 			char *username = ByteStream_read_str(b);
 			// might be community?
 			ByteStream_read_u32(b);
 			char *chat = ByteStream_read_str(b);
 			char *msg = ByteStream_read_str(b);
-			printf("[#%s] [%s] %s\n", chat, username, msg);
+			self->api->on_cp_chat_recv(self, chat, username, msg);
 			free(username);
 			free(chat);
 			free(msg);
+			break;
+		}
+		case CP_CCC_CONNECT:
+			puts("Connected to community platform");
+			break;
+		case 0x0037:
+			// recv after joining a chat
+			break;
+		case CP_CCC_CHAT_SEND_STATUS: {
+			// recv when you send a message
+			// some counter
+			ByteStream_read_u32(b);
+			byte status = ByteStream_read_byte(b);
+			switch (status) {
+			case 0x00:
+				// success
+				break;
+			case 0x17:
+				puts("Message failed : spam protection");
+				break;
+			default:
+				printf("Message failed (0x%x)\n", status);
+			}
 			break;
 		}
 		default:

@@ -17,7 +17,8 @@ def do_send(sock):
 	msg = None
 	if s[0] == '/':
 		if s_len < 4:
-			return 'Command is too short to be valid'
+			print('Command is too short to be valid')
+			return False
 		elif s_len == 5:
 			msg = ''
 		else:
@@ -29,7 +30,7 @@ def do_send(sock):
 	sock.send(bytes(cmd, 'ascii'))
 	sock.send(len(msg).to_bytes(2, byteorder='little'))
 	sock.send(bytes(msg, 'ascii'))
-	return False
+	return True
 
 def do_recv(sock):
 	data_len = int.from_bytes(block_recv(sock, 2), byteorder='little')
@@ -44,9 +45,11 @@ def main():
 	conn, addr = sock.accept()
 	print('Connected ' + addr[0] + ':' + str(addr[1]))
 	while True:
-		e = do_send(conn)
-		if e:
-			print(e)
-		else:
+		if do_send(conn):
 			do_recv(conn)
-main()
+while True:
+	try:
+		main()
+	except BrokenPipeError:
+		print('Connection interrupted')
+

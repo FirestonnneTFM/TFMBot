@@ -24,6 +24,7 @@ struct Bot {
 extern volatile int num_bots_running;
 extern struct Bot **bots_running;
 extern char *x_arg;
+extern byte login_mode;
 extern char *override_username;
 extern char *override_password;
 extern char *override_roomname;
@@ -38,6 +39,7 @@ void Bot_send_command(struct Bot *, char *);
 void Bot_send_emote(struct Bot *, byte);
 void Bot_join_cp_chat(struct Bot *, char *);
 void Bot_send_cp_chat(struct Bot *, char *, char *);
+void Bot_do_register(struct Bot *self, char *);
 
 #define EMOTE_DANCE 0
 #define EMOTE_LAUGH 1
@@ -60,11 +62,13 @@ void Bot_send_cp_chat(struct Bot *, char *, char *);
 #define CCC_HEARTBEAT 0x1A1A
 #define CCC_HANDSHAKE 0x1C01
 #define CCC_HANDSHAKE_OK 0x1A03
-#define CCC_SET_COMMUNITY 0x0802
-#define CCC_OS_INFO 0x1C11
+#define CCC_CAPTCHA 0x1A14
+#define CCC_REGISTER 0x1A07
 #define CCC_LOGIN 0x1A08
 #define CCC_LOGIN_OK 0x1A02
 #define CCC_SWITCH_BULLE 0x2C01
+#define CCC_SET_COMMUNITY 0x0802
+#define CCC_OS_INFO 0x1C11
 #define CCC_SET_KEY_OFFSET 0x2C16
 #define CCC_WHICH_GAME 0x0701
 #define CCC_ROOM_JOIN 0x0515
@@ -84,9 +88,11 @@ void Bot_send_cp_chat(struct Bot *, char *, char *);
 #define OLD_CCC_NEW_SHAMAN 0x0815
 #define OLD_CCC_BANNED 0x1a12
 
+#define CP_CCC_CONNECT 0x0003
 #define CP_CCC_JOIN_CHAT 0x0036
 #define CP_CCC_JOIN_CHAT_OK 0x003E
 #define CP_CCC_CHAT_SEND 0x0030
+#define CP_CCC_CHAT_SEND_STATUS 0x0031
 #define CP_CCC_CHAT_RECV 0x0040
 
 
