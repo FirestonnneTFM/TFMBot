@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import socket
+import time
 
 def block_recv(sock, n):
 	data = b''
@@ -33,9 +34,12 @@ def do_send(sock):
 	return True
 
 def do_recv(sock):
+	bye = block_recv(sock, 1)[0] != 0
 	data_len = int.from_bytes(block_recv(sock, 2), byteorder='little')
 	if data_len > 0:
 		print(str(block_recv(sock, data_len), 'ascii'))
+	if bye:
+		raise BrokenPipeError
 
 def main():
 	print('Connecting...')
@@ -52,4 +56,12 @@ while True:
 		main()
 	except BrokenPipeError:
 		print('Connection interrupted')
+		time.sleep(1)
+	except OSError as e:
+		print(e)
+		time.sleep(3)
+	except KeyboardInterrupt:
+		print()
+		print('Keyboard interrupt -- exiting')
+		break
 

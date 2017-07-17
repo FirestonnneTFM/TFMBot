@@ -90,7 +90,7 @@ static void on_cp_chat_join(struct Bot *self, char *chat_name)
 
 static void on_cp_chat_recv(struct Bot *self, char *chat, char *username, char *msg) {
 	UNUSED(self);
-	printf("[#%s] [%s] [%s]\n", chat, username, msg);
+	printf("[#%s] [%s] %s\n", chat, username, msg);
 }
 
 void register_apibot_afk()

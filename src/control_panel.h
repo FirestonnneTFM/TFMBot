@@ -12,6 +12,6 @@ struct ControlPanel {
 
 struct ControlPanel *ControlPanel_new(sock_t);
 bool ControlPanel_listen(struct ControlPanel *);
-void ControlPanel_reply(struct ControlPanel *self, char *msg);
+void ControlPanel_reply(struct ControlPanel *self, byte status, char *msg);
 
 #endif

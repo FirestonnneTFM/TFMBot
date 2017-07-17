@@ -71,6 +71,7 @@ void Bot_do_register(struct Bot *self, char *);
 #define CCC_OS_INFO 0x1C11
 #define CCC_SET_KEY_OFFSET 0x2C16
 #define CCC_WHICH_GAME 0x0701
+#define CCC_ROOM_JOIN_REQUEST 0x0526
 #define CCC_ROOM_JOIN 0x0515
 #define CCC_NEW_MAP 0x0502
 #define CCC_PLAYER_POSITION 0x0404
@@ -94,6 +95,8 @@ void Bot_do_register(struct Bot *self, char *);
 #define CP_CCC_CHAT_SEND 0x0030
 #define CP_CCC_CHAT_SEND_STATUS 0x0031
 #define CP_CCC_CHAT_RECV 0x0040
+#define CP_CCC_WHISPER_RECV 0x0042
+#define CP_CCC_WHISPER_RECV_2 0x0056
 
 
 #endif

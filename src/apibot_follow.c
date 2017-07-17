@@ -6,7 +6,7 @@
 static struct Player *target = NULL;
 static struct Player *default_target = NULL;
 #define api_data()(*((int*)self->api_data))
-#define cmd_yield(s) do { ControlPanel_reply(ctrl, s); return true; } while(0)
+#define cmd_yield(s) do { ControlPanel_reply(ctrl, 0, s); return true; } while(0)
 	
 static bool on_control(struct Bot *self, struct ControlPanel *ctrl, uint32_t cmd, char *msg)
 {

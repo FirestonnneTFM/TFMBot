@@ -8,11 +8,12 @@
 #include <time.h>
 #include "control_panel.h"
 
-#define create_thread(funct, obj) do {				\
-	pthread_t thread;								\
-	if (pthread_create(&thread, NULL, funct, obj))	\
-		fatal("Thread creation failed");			\
-} while (0);
+static inline void create_thread(void *(*funct)(void*), void *obj)
+{
+	pthread_t thread;
+	if (pthread_create(&thread, NULL, funct, obj))
+		fatal("Thread creation failed");
+}
 
 static void *run_bot(void *ptr)
 {

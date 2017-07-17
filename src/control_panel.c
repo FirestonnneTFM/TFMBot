@@ -15,7 +15,7 @@ struct ControlPanel *ControlPanel_new(sock_t sock)
 	return self;
 }
 
-#define cmd_yield(s) do { ControlPanel_reply(self, s); return true; } while(0)
+#define cmd_yield(s) do { ControlPanel_reply(self, 0, s); return true; } while(0)
 #define cmd_get_int(n) do { if (sscanf(msg, "%d", n) != 1) cmd_yield("Integer expected"); } while (0)
 #define sel_bot()(bots_running[self->bot_index])
 
@@ -64,7 +64,7 @@ bool ControlPanel_listen(struct ControlPanel *self)
 	}
 	case 'bot': {
 		char buf[128];
-		sprintf(buf, "Player #%u %s; Room : %s", sel_bot()->player->id,
+		sprintf(buf, "[%u] %s; Room : %s", sel_bot()->player->id,
 				sel_bot()->player->name, sel_bot()->room->name);
 		cmd_yield(buf);
 	}
@@ -96,10 +96,11 @@ bool ControlPanel_listen(struct ControlPanel *self)
 	}
 	case 'kil':
 		puts("Control is killing process");
-		ControlPanel_reply(self, "Dead: send message to reconnect");
+		ControlPanel_reply(self, 1, "Dead");
+		close(self->sock);
 		exit(0);
 		return false;
-	case 'roo':
+	case 'rom':
 		Bot_change_room(sel_bot(), msg);
 		cmd_yield(NULL);
 	default:
@@ -107,18 +108,19 @@ bool ControlPanel_listen(struct ControlPanel *self)
 	}
 }
 
-void ControlPanel_reply(struct ControlPanel *self, char *msg)
+void ControlPanel_reply(struct ControlPanel *self, byte status, char *msg)
 {
-	byte buf[2];
+	byte buf[3];
+	buf[0] = status;
 	if (msg == NULL) {
-		buf[0] = 0;
 		buf[1] = 0;
-		write(self->sock, buf, 2);
+		buf[2] = 0;
+		write(self->sock, buf, 3);
 	} else {
 		int len = strlen(msg);
-		buf[0] = len & 0xff;
-		buf[1] = (len >> 8) & 0xff;
-		sock_write(self->sock, buf, 2);
+		buf[1] = len & 0xff;
+		buf[2] = (len >> 8) & 0xff;
+		sock_write(self->sock, buf, 3);
 		if (len)
 			sock_write(self->sock, msg, len);
 	}

@@ -82,11 +82,11 @@ void Bot_change_room(struct Bot *self, char *room_name)
 	// this doesn't work yet since connecting to a new room requires a
 	// new game sock to be opened, a bit of a pain
 	struct ByteStream *b = ByteStream_new();
-	ByteStream_write_u16(b, 0x0526);
+	ByteStream_write_u16(b, CCC_ROOM_JOIN_REQUEST);
 	ByteStream_write_byte(b, 0xff);
 	ByteStream_write_str(b, room_name);
 	ByteStream_write_byte(b, 0);
-	Connection_send(self->bulle_conn, b);
+	Connection_send(self->main_conn, b);
 	ByteStream_dispose(b);
 }
 
@@ -421,6 +421,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			for (i = 0; i < len; i++)
 				msg[i] = b->array[b->position + i];
 			printf("Banned %f hours : %s\n", time, msg);
+			exit(0);
 			break;
 		}
 		default:
@@ -475,6 +476,24 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			default:
 				printf("Message failed (0x%x)\n", status);
 			}
+			break;
+		}
+		case CP_CCC_WHISPER_RECV: {
+			char *username = ByteStream_read_str(b);
+			// community
+			ByteStream_read_u32(b);
+			// your username, not sure why
+			free(ByteStream_read_str(b));
+			char *msg = ByteStream_read_str(b);
+			printf("--> [%s] %s\n", username, msg);
+			break;
+		}
+		case CP_CCC_WHISPER_RECV_2: {
+			// I don't actually know what this is from, it's not a
+			// normal whisper
+			char *username = ByteStream_read_str(b);
+			char *msg = ByteStream_read_str(b);
+			printf(">>> [%s] %s\n", username, msg);
 			break;
 		}
 		default:
