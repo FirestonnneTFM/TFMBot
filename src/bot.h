@@ -96,7 +96,6 @@ void Bot_do_register(struct Bot *self, char *);
 #define CP_CCC_CHAT_SEND_STATUS 0x0031
 #define CP_CCC_CHAT_RECV 0x0040
 #define CP_CCC_WHISPER_RECV 0x0042
-#define CP_CCC_WHISPER_RECV_2 0x0056
-
+#define CP_CCC_TRIBE_INVITE_RECV 0x0056
 
 #endif

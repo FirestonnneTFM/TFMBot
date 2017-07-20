@@ -470,8 +470,14 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			case 0x00:
 				// success
 				break;
+			case 0x03:
+				puts("Message failed : channel not joined");
+				break;
+			case 0x15:
+				puts("Message failed : message too long");
+				break;
 			case 0x17:
-				puts("Message failed : spam protection");
+				puts("Message failed : rate limited");
 				break;
 			default:
 				printf("Message failed (0x%x)\n", status);
@@ -488,12 +494,12 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			printf("--> [%s] %s\n", username, msg);
 			break;
 		}
-		case CP_CCC_WHISPER_RECV_2: {
-			// I don't actually know what this is from, it's not a
-			// normal whisper
+		case CP_CCC_TRIBE_INVITE_RECV: {
 			char *username = ByteStream_read_str(b);
-			char *msg = ByteStream_read_str(b);
-			printf(">>> [%s] %s\n", username, msg);
+			char *tribename = ByteStream_read_str(b);
+			printf("%s invited you to tribe `%s`\n", username, tribename);
+			free(username);
+			free(tribename);
 			break;
 		}
 		default:

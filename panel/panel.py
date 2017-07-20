@@ -62,6 +62,6 @@ while True:
 		time.sleep(3)
 	except KeyboardInterrupt:
 		print()
-		print('Keyboard interrupt -- exiting')
+		print('Keyboard interrupt')
 		break
 
