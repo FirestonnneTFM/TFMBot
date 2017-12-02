@@ -110,6 +110,10 @@ void ByteStream_write_sock(struct ByteStream *self, sock_t sock, byte k)
 	header[header_size - 1] = k;
 	sock_write(sock, header, header_size);
 	sock_write(sock, self->array, self->count);
+#ifdef PRINT_ALL_OUT_PACKETS
+	printf("[out] ");
+	ByteStream_print(self, 0);
+#endif
 }
 
 char *ByteStream_read_str(struct ByteStream *self)

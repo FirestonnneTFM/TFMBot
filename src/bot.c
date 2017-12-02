@@ -6,7 +6,6 @@
 
 #define HOST "164.132.202.12"
 #define PORT 5555
-//#define PRINT_ALL_PACKETS
 
 volatile int num_bots_running = 0;
 struct Bot **bots_running = NULL;
@@ -73,14 +72,13 @@ void Bot_send_player_coords(struct Bot *self, struct Player *player)
 	ByteStream_write_byte(b, player->jumping);
 	ByteStream_write_byte(b, player->animation_frame);
 	ByteStream_write_byte(b, 0);
+	ByteStream_write_u32(b, 0);
 	Connection_send(self->bulle_conn, b);
 	ByteStream_dispose(b);
 }
 
 void Bot_change_room(struct Bot *self, char *room_name)
 {
-	// this doesn't work yet since connecting to a new room requires a
-	// new game sock to be opened, a bit of a pain
 	struct ByteStream *b = ByteStream_new();
 	ByteStream_write_u16(b, CCC_ROOM_JOIN_REQUEST);
 	ByteStream_write_byte(b, 0xff);
@@ -175,6 +173,10 @@ void Bot_do_register(struct Bot *self, char *captcha)
 
 static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, uint16_t ccc, struct ByteStream *b)
 {
+#ifdef PRINT_ALL_IN_PACKETS
+	printf("[ in] %04x ", ccc);
+	ByteStream_print(b, 2);
+#endif
 	switch (ccc) {
 	case CCC_HANDSHAKE_OK: {
 		uint32_t players_online = ByteStream_read_u32(b);
@@ -591,7 +593,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 	case 0x1c06:
 		// who cares
 		break;
-#ifdef PRINT_ALL_PACKETS
+#ifdef PRINT_ALL_UNHANDLED_PACKETS
 	default:
 		printf("%04x ", ccc);
 		ByteStream_print(b, 2);
@@ -616,13 +618,6 @@ static bool Bot_check_conn(struct Bot *self, struct Connection *conn)
 	return ret;
 }
 
-// these are pretty ugly, and are probably don't need to be accurate,
-// but who cares
-
-#define FONT_HASH "509651e4ebc76077067c4054a8c1888d9164be8fa5ff82292fd70fae2273f183"
-
-#define FLASH_SERVER_STRING "A=t&SA=t&SV=t&EV=t&MP3=t&AE=t&VE=t&ACC=t&PR=t&SP=f&SB=f&DEB=f&V=WIN 25,0,0,127&M=Adobe Windows&R=1366x768&COL=color&AR=1.0&OS=Windows 8&ARCH=x86&L=en&IME=t&PR32=t&PR64=t&LS=en-US&PT=Desktop&AVD=f&LFD=f&WD=f&TLS=t&ML=5.1&DP=72"
-
 void Bot_start(struct Bot *self)
 {
 	Connection_open(self->main_conn, HOST, PORT);
@@ -636,8 +631,8 @@ void Bot_start(struct Bot *self)
 	ByteStream_write_str(b, "-");
 	ByteStream_write_u32(b, 0x00001FBD);
 	ByteStream_write_str(b, NULL);
-	ByteStream_write_str(b, FONT_HASH);
-	ByteStream_write_str(b, FLASH_SERVER_STRING);
+	ByteStream_write_str(b, NULL);
+	ByteStream_write_str(b, NULL);
 	ByteStream_write_u32(b, 0);
 	// this number is supposed to the time in ms that the game took to
 	// load, so this doesn't have to be a magic number

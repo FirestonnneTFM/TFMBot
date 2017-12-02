@@ -7,6 +7,10 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+//#define PRINT_ALL_OUT_PACKETS
+//#define PRINT_ALL_IN_PACKETS
+//#define PRINT_ALL_UNHANDLED_PACKETS
+
 #define UNUSED(x)((void)(x))
 #define sleep_ms(x)(usleep(1000 * x))
 

@@ -1,10 +1,6 @@
 # Prerequisites
 *.d
 
-# Helper scripts
-[Ss]rc/auto.sh
-[Ss]rc/auto.bat
-
 # Object files
 [Bb]in/
 *.o

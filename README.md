@@ -7,6 +7,12 @@ This is a work in progress, and uses POSIX system calls, so you will
 probably only be able to compile and use it on unix-like operating
 systems.
 
+Compiler note: In order to enforce code quality, the makefile uses the
+`-Werror` flag (warnings will be treated as errors and prevent you
+from compiling). If some warning is persisting, and you are not
+contributing code, it might be a good idea to simply delete this flag
+from the makefile to get on with your life.
+
 ### Keys
 
 Running the bot requires a binary file named `keys.bin` in the same
