@@ -79,8 +79,7 @@ void sock_block_read(sock_t sock, void *buf, int len)
 	int pos = 0;
 	// loop until buffer is filled
 	while (true) {
-		pbuf += pos;
-		int n = read(sock, pbuf, len - pos);
+		int n = read(sock, pbuf + pos, len - pos);
 		if (n < 0)
 			fatal("Read failed");
 		pos += n;

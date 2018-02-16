@@ -470,6 +470,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			byte status = ByteStream_read_byte(b);
 			switch (status) {
 			case 0x00:
+			case 0x01:
 				// success
 				break;
 			case 0x03:
@@ -478,7 +479,7 @@ static inline void Bot_handle_packet(struct Bot *self, struct Connection *conn, 
 			case 0x15:
 				puts("Message failed : message too long");
 				break;
-			case 0x17:
+			case 0x18:
 				puts("Message failed : rate limited");
 				break;
 			default:
